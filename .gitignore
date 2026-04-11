@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+.env
+.vscode/
+.idea/
+.DS_Store
+report/*.aux
+report/*.log
+report/*.out
+report/*.synctex.gz
+report/*.fdb_latexmk
+report/*.fls
+report/*.toc
