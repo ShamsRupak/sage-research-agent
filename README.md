@@ -259,13 +259,4 @@ Results on the transformer vs. RNN query (actual measured run):
 
 ---
 
-## Team
-
-| Member | Responsibilities |
-|--------|-----------------|
-| **Shams Rupak** | Hierarchical Planner (DAG, decomposer, scheduler, re-planner), priority scheduling algorithm, ablation study design, evaluation framework, final report |
-| **Gagan Sapkota** | Tool layer (5 tools + registry), Evidence Critic module, state/memory management, synthesis pipeline, demo interface |
-
----
-
 *ESE 561 — Artificial Intelligence · Stony Brook University · Spring 2026*
