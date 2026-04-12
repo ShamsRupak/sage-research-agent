@@ -79,7 +79,7 @@ class LLMClient:
         primary_model: str = "llama-3.3-70b-versatile",
         fallback_model: str = "gemini-1.5-flash",
         max_retries: int = 3,
-        retry_delay: float = 1.0,
+        retry_delay: float = 2.0,
     ) -> None:
         self.groq_api_key = groq_api_key or os.getenv("GROQ_API_KEY", "")
         self.gemini_api_key = gemini_api_key or os.getenv("GEMINI_API_KEY", "")
@@ -138,6 +138,8 @@ class LLMClient:
         Full completion with metadata tracking.
         Tries primary provider, then fallback on failure.
         """
+        last_error = None
+
         # Try Groq first
         if self.groq_api_key:
             for attempt in range(self.max_retries):
@@ -146,12 +148,12 @@ class LLMClient:
                         prompt, system, temperature, max_tokens
                     )
                 except Exception as e:
+                    last_error = e
                     self.tracker.record_failure()
                     if attempt < self.max_retries - 1:
                         wait = self.retry_delay * (2 ** attempt)
                         await asyncio.sleep(wait)
                     else:
-                        # Fall through to Gemini
                         break
 
         # Try Gemini fallback
@@ -162,6 +164,7 @@ class LLMClient:
                         prompt, system, temperature, max_tokens
                     )
                 except Exception as e:
+                    last_error = e
                     self.tracker.record_failure()
                     if attempt < self.max_retries - 1:
                         wait = self.retry_delay * (2 ** attempt)
@@ -171,6 +174,10 @@ class LLMClient:
                             f"All LLM providers failed. Last error: {e}"
                         ) from e
 
+        if last_error:
+            raise RuntimeError(
+                f"All LLM providers failed. Last Groq error: {last_error}"
+            )
         raise RuntimeError(
             "No LLM API keys configured. Set GROQ_API_KEY or GEMINI_API_KEY in .env"
         )
@@ -197,9 +204,8 @@ class LLMClient:
             )
 
         start = time.time()
-        response = await asyncio.get_event_loop().run_in_executor(
-            None, _sync_call
-        )
+        loop = asyncio.get_running_loop()
+        response = await loop.run_in_executor(None, _sync_call)
         latency = time.time() - start
 
         content = response.choices[0].message.content or ""
@@ -238,13 +244,11 @@ class LLMClient:
             )
 
         start = time.time()
-        response = await asyncio.get_event_loop().run_in_executor(
-            None, _sync_call
-        )
+        loop = asyncio.get_running_loop()
+        response = await loop.run_in_executor(None, _sync_call)
         latency = time.time() - start
 
         content = response.text or ""
-        # Gemini doesn't always expose token counts in the same way
         token_estimate = len(full_prompt.split()) + len(content.split())
 
         self.tracker.record(

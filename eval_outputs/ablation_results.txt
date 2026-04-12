@@ -1,6 +1,6 @@
 Query  Condition      Nodes Resolved   LLM Tools  AvgConf Retries Replans Cites  Length  Time(s)
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-q5     single_llm         1        1     1     0    0.000       0       0     0    5548      6.3
+q2     single_llm         1        1     1     0    0.000       0       0     0    5916      2.8
 
 
 === Condition Summary ===
@@ -9,7 +9,7 @@ q5     single_llm         1        1     1     0    0.000       0       0     0 
     Avg Confidence:  0.000
     Avg Tool Calls:  0.0
     Avg Citations:   0.0
-    Avg Report Len:  5548 chars
-    Avg Time:        6.3s
+    Avg Report Len:  5916 chars
+    Avg Time:        2.8s
     Total Retries:   0
     Total Re-plans:  0

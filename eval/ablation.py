@@ -57,7 +57,7 @@ async def run_sage(query: str, query_id: str) -> tuple[EvalMetrics, str]:
         max_iterations=30,
         max_react_steps=5,
         confidence_threshold=0.70,
-        verbose=False,  # Quiet for ablation
+        verbose=False,
     )
 
     state = await agent.run(query)
@@ -134,7 +134,6 @@ async def run_flat_react(query: str, query_id: str) -> tuple[EvalMetrics, str]:
             break
 
         tool_result = await registry.dispatch(parsed.action, parsed.action_input)
-        state.record_llm_call()
 
         tool_call = ToolCall(
             tool_name=parsed.action,
@@ -287,6 +286,9 @@ async def run_ablation(
                 console.print(f"  [bold red]✗ {cond} failed: {e}[/bold red]")
                 import traceback
                 traceback.print_exc()
+
+            # Rate limit buffer between runs
+            await asyncio.sleep(5)
 
     return all_metrics
 
