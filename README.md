@@ -23,45 +23,34 @@ The core design principle: **the LLM reasons, but the agent decides.** The LLM p
 ## Architecture
 
 ```
-                    ┌─────────────────────────────┐
-                    │         User Query          │
-                    └──────────────┬──────────────┘
-                                   │
-                                   ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │              Hierarchical Planner  [Agent Layer]        │
-  │  DAG decomposition · priority scheduling · re-planning  │
-  │              (deterministic Python — no LLM)            │
-  └──────────────────────────┬──────────────────────────────┘
-                             │
-                             ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │            LLM Reasoning Engine  [Neural Layer]         │
-  │     ReAct loop: Thought → Action → Observation          │
-  │          (per sub-goal, max 5 steps)                    │
-  └──────────────────────────┬──────────────────────────────┘
-                             │
-                             ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │            Tool Execution Layer  [Execution Layer]      │
-  │  web_search · fetch_url · extract_claims · code_run     │
-  │                  cross_reference                        │
-  └──────────────────────────┬──────────────────────────────┘
-                             │
-                             ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │            Evidence Critic  [Control Layer]             │
-  │  Confidence scoring · contradiction detection           │
-  │     → ACCEPT / RETRY / ESCALATE                         │
-  │  (deterministic overrides enforce termination)     ─────┼──→ Re-plan
-  └──────────────────────────┬──────────────────────────────┘     (feedback)
-                             │
-                             ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │            Synthesis & Report  [Output Layer]           │
-  │  Topological DAG traversal → structured Markdown        │
-  │  with citations, confidence table, and provenance       │
-  └─────────────────────────────────────────────────────────┘
+      ┌─────────────────┐
+      │    User Query   │
+      └────────┬────────┘
+               ▼
+  ┌──────────────────────────┐      
+  │   Hierarchical Planner   │  ◄──   DAG decomposition, priority scheduling,
+  │  (Deterministic Python)  │        stopping conditions, re-planning
+  └────────────┬─────────────┘      
+               ▼
+  ┌──────────────────────────┐      
+  │  LLM Reasoning Engine    │  ◄──   ReAct loop: Thought → Action → Observation
+  │  (per sub-goal, 5 steps) │        (per sub-goal, max 5 steps)
+  └────────────┬─────────────┘     
+               ▼
+  ┌──────────────────────────┐      
+  │  Tool Execution Layer    │  ◄──   web_search, fetch_url, extract_claims,
+  │  (5 stateless tools)     │        code_run, cross_reference
+  └────────────┬─────────────┘      
+               ▼
+  ┌──────────────────────────┐     
+  │  Evidence Critic         │  ◄──   Confidence scoring, contradiction detection
+  │  (separate LLM call)     │        → ACCEPT / RETRY / ESCALATE
+  └────────────┬─────────────┘        (ESCALATE triggers re-planning ↑)
+               ▼                    
+  ┌──────────────────────────┐
+  │  Synthesis & Report      │  ◄──   Topological DAG traversal → structured
+  │  (dependency-ordered)    │        Markdown with citations + provenance
+  └──────────────────────────┘
 ```
 
 ---
@@ -81,7 +70,7 @@ The core design principle: **the LLM reasons, but the agent decides.** The LLM p
 ## Tech Stack
 
 | Component | Technology | Why |
-|-----------|-----------|------|
+|-----------|------------|-----|
 | LLM | Groq API (`llama-3.3-70b-versatile`) | Fast inference, free tier, 14,400 req/day |
 | Fallback LLM | Google Gemini 1.5 Flash | Automatic failover if Groq rate-limits |
 | Web Search | Tavily API | Agent-optimized — returns clean snippets, not raw HTML |
@@ -98,38 +87,38 @@ The core design principle: **the LLM reasons, but the agent decides.** The LLM p
 ```
 sage-research-agent/
 ├── sage/                      # Core agent package
-│   ├── agent.py               # Main orchestrator — wires all layers together
+│   ├── agent.py               # Main orchestrator
 │   ├── planner/               # Hierarchical planning (4 modules)
-│   │   ├── dag.py             #   DAG data structure with cycle detection
-│   │   ├── decomposer.py      #   Query → sub-goals (LLM proposes, planner validates)
-│   │   ├── scheduler.py       #   Min-heap priority queue with dependency gating
-│   │   └── replanner.py       #   Inserts new sub-goals on ESCALATE signals
+│   │   ├── dag.py             #   DAG with cycle detection
+│   │   ├── decomposer.py      #   Query → sub-goals
+│   │   ├── scheduler.py       #   Priority queue + dependency gating
+│   │   └── replanner.py       #   Insert nodes on ESCALATE
 │   ├── tools/                 # Tool layer (6 modules)
-│   │   ├── registry.py        #   Tool registration, dispatch, and description generation
-│   │   ├── web_search.py      #   Tavily API integration
-│   │   ├── fetch_url.py       #   HTTP fetch + HTML parsing
-│   │   ├── extract_claims.py  #   LLM-powered claim extraction
-│   │   ├── code_runner.py     #   Sandboxed Python execution
-│   │   └── cross_reference.py #   Internal consistency checking
+│   │   ├── registry.py        #   Registration + dispatch
+│   │   ├── web_search.py      #   Tavily API
+│   │   ├── fetch_url.py       #   HTTP fetch + parsing
+│   │   ├── extract_claims.py  #   LLM claim extraction
+│   │   ├── code_runner.py     #   Sandboxed execution
+│   │   └── cross_reference.py #   Consistency checking
 │   ├── llm/                   # LLM interface (3 modules)
-│   │   ├── client.py          #   Provider-agnostic client with retry + fallback
-│   │   ├── prompts.py         #   All prompt templates (centralized)
-│   │   └── parser.py          #   Lenient JSON/ReAct output parsing
+│   │   ├── client.py          #   Provider-agnostic + fallback
+│   │   ├── prompts.py         #   All prompt templates
+│   │   └── parser.py          #   Lenient JSON parsing
 │   ├── critic/
-│   │   └── evidence_critic.py #   Confidence scoring + control signals
+│   │   └── evidence_critic.py #   Confidence + control signals
 │   ├── memory/
-│   │   └── state.py           #   Shared state, reasoning traces, provenance
+│   │   └── state.py           #   Shared state + provenance
 │   └── synthesis/
-│       └── synthesizer.py     #   Topological synthesis + report generation
+│       └── synthesizer.py     #   Topological synthesis
 ├── eval/                      # Evaluation framework
-│   ├── queries.py             #   5 diverse test queries
-│   ├── rubric.py              #   Metrics extraction and comparison tables
-│   └── ablation.py            #   3-condition ablation runner
+│   ├── queries.py             #   5 test queries
+│   ├── rubric.py              #   Metrics + comparison
+│   └── ablation.py            #   3-condition ablation
 ├── demo/
-│   └── run_demo.py            #   End-to-end demo with rich terminal output
+│   └── run_demo.py            #   End-to-end demo
 ├── report/
-│   ├── main.tex               #   Final LaTeX report
-│   └── proposal.tex           #   Project proposal
+│   ├── main.tex               #   Final report
+│   └── proposal.tex           #   Proposal
 └── tests/                     #   59 unit tests
     ├── test_dag.py
     ├── test_planner.py
@@ -176,30 +165,30 @@ python -m eval.ablation --query q1
 ━━━ PLANNING: Decomposing query into sub-goals... ━━━
 
               Sub-Goal DAG
-╭──────────┬──────────────────────────────────────┬───────────╮
-│ ID       │ Question                             │ Depth     │
-├──────────┼──────────────────────────────────────┼───────────┤
-│ sub_1    │ Key architectural differences        │   0       │
-│ sub_2    │ Performance on long-context tasks    │   1       │
-│ sub_3    │ Computational efficiency trade-offs  │   1       │
-│ sub_4    │ Empirical evidence                   │   2       │
-│ sub_5    │ Open research questions              │   3       │
-╰──────────┴──────────────────────────────────────┴───────────╯
+╭──────────┬──────────────────────────────────────┬───────╮
+│ ID       │ Question                             │ Depth │
+├──────────┼──────────────────────────────────────┼───────┤
+│ sub_1    │ Key architectural differences        │   0   │
+│ sub_2    │ Performance on long-context tasks    │   1   │
+│ sub_3    │ Computational efficiency trade-offs  │   1   │
+│ sub_4    │ Empirical evidence                   │   2   │
+│ sub_5    │ Open research questions              │   3   │
+╰──────────┴──────────────────────────────────────┴───────╯
 
 ━━━ EXECUTION: Starting agent loop... ━━━
 
 ▶ Iteration 1 | Node: sub_1
-  💭 Thought: To answer this, I need to understand the fundamental differences...
-  🔧 Action: web_search → ✓ 5 results
-  🔧 Action: fetch_url → ✗ failed (403)
-  🔧 Action: extract_claims → ✓ 6 claims
+  💭 Thought: I need to understand the fundamental differences...
+  🔧 web_search → ✓ 5 results
+  🔧 fetch_url → ✗ failed (403)
+  🔧 extract_claims → ✓ 6 claims
   🔍 Critic: confidence=0.80, signal=ACCEPT
 
 ▶ Iteration 2 | Node: sub_3
-  🔧 Action: web_search → ✓
-  🔧 Action: extract_claims → ✓ 8 claims
-  🔧 Action: cross_reference → ✓ all consistent
-  🔧 Action: finish
+  🔧 web_search → ✓
+  🔧 extract_claims → ✓ 8 claims
+  🔧 cross_reference → ✓ all consistent
+  🔧 finish
   🔍 Critic: confidence=0.85, signal=ACCEPT
 
 ...
@@ -228,7 +217,9 @@ SAGE includes a built-in ablation framework comparing three conditions:
 | **Flat ReAct** | Single-node ReAct loop | ✗ | ✓ 3 tools | ✗ |
 | **Single LLM** | One prompt, one response | ✗ | ✗ | ✗ |
 
-Results on the transformer vs. RNN query (actual measured run):
+Results from actual measured runs:
+
+**Query q1** — *Transformer vs. RNN architectures (hard)*
 
 | Metric | SAGE | Flat ReAct | Single LLM |
 |--------|------|------------|------------|
@@ -236,8 +227,25 @@ Results on the transformer vs. RNN query (actual measured run):
 | LLM Calls | 28 | 8 | 1 |
 | Tool Calls | 19 | 5 | 0 |
 | Avg Confidence | 0.82 | 0.50 (default) | 0.00 |
+| Retries | 0 | 0 | 0 |
 | Citations | 14 | 3 | 0 |
+| Report Length | 8,500 chars | 3,200 chars | 7,223 chars |
 | Time (s) | 135 | 42 | 3 |
+
+**Query q5** — *RAG vs. fine-tuning comparison (medium)*
+
+| Metric | SAGE | Flat ReAct | Single LLM |
+|--------|------|------------|------------|
+| Sub-goals | 6 | 1 | 1 |
+| LLM Calls | 54 | 4 | 1 |
+| Tool Calls | 37 | 3 | 0 |
+| Avg Confidence | 0.85 | 0.50 (default) | 0.00 |
+| Retries | 3 | 0 | 0 |
+| Citations | 80 | 0 | 0 |
+| Report Length | 12,855 chars | 1,059 chars | 4,779 chars |
+| Time (s) | 317 | 11 | 3 |
+
+The q5 run is particularly notable: the Evidence Critic triggered **3 retries** across 6 sub-goals, directly demonstrating the self-correction mechanism. SAGE produced **80 citations** compared to zero from both baselines.
 
 ---
 
@@ -255,7 +263,7 @@ Results on the transformer vs. RNN query (actual measured run):
 - [x] Phase 9: Evaluation framework and ablation study
 - [x] Phase 10: Final LaTeX report
 
-**59 tests passing** · **16 modules** · **13 commits**
+**59 tests passing** · **16 modules** · **~15 commits**
 
 ---
 
