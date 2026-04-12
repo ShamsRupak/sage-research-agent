@@ -24,7 +24,7 @@ The core design principle: **the LLM reasons, but the agent decides.** The LLM p
 
 ```
                     ┌─────────────────────────────┐
-                    │         User Query           │
+                    │         User Query          │
                     └──────────────┬──────────────┘
                                    │
                                    ▼
@@ -81,7 +81,7 @@ The core design principle: **the LLM reasons, but the agent decides.** The LLM p
 ## Tech Stack
 
 | Component | Technology | Why |
-|-----------|-----------|-----|
+|-----------|-----------|------|
 | LLM | Groq API (`llama-3.3-70b-versatile`) | Fast inference, free tier, 14,400 req/day |
 | Fallback LLM | Google Gemini 1.5 Flash | Automatic failover if Groq rate-limits |
 | Web Search | Tavily API | Agent-optimized — returns clean snippets, not raw HTML |
@@ -180,8 +180,8 @@ python -m eval.ablation --query q1
 │ ID       │ Question                             │ Depth     │
 ├──────────┼──────────────────────────────────────┼───────────┤
 │ sub_1    │ Key architectural differences        │   0       │
-│ sub_2    │ Performance on long-context tasks     │   1       │
-│ sub_3    │ Computational efficiency trade-offs   │   1       │
+│ sub_2    │ Performance on long-context tasks    │   1       │
+│ sub_3    │ Computational efficiency trade-offs  │   1       │
 │ sub_4    │ Empirical evidence                   │   2       │
 │ sub_5    │ Open research questions              │   3       │
 ╰──────────┴──────────────────────────────────────┴───────────╯
