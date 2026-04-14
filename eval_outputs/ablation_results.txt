@@ -1,27 +1,17 @@
 Query  Condition      Nodes Resolved   LLM Tools  AvgConf Retries Replans Cites  Length  Time(s)
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-q5     sage               6        6    54    37    0.850       3       0    80   12855    317.4
-q5     flat_react         1        1     4     3    0.500       0       0     0    1059     11.4
-q5     single_llm         1        1     1     0    0.000       0       0     0    4779      2.6
+q3     flat_react         1        1     5     4    0.500       0       0     0     530      8.7
+q3     single_llm         1        1     1     0    0.000       0       0     0    7116      5.1
 
 
 === Condition Summary ===
 
-  sage:
-    Avg Confidence:  0.850
-    Avg Tool Calls:  37.0
-    Avg Citations:   80.0
-    Avg Report Len:  12855 chars
-    Avg Time:        317.4s
-    Total Retries:   3
-    Total Re-plans:  0
-
   flat_react:
     Avg Confidence:  0.500
-    Avg Tool Calls:  3.0
+    Avg Tool Calls:  4.0
     Avg Citations:   0.0
-    Avg Report Len:  1059 chars
-    Avg Time:        11.4s
+    Avg Report Len:  530 chars
+    Avg Time:        8.7s
     Total Retries:   0
     Total Re-plans:  0
 
@@ -29,7 +19,7 @@ q5     single_llm         1        1     1     0    0.000       0       0     0 
     Avg Confidence:  0.000
     Avg Tool Calls:  0.0
     Avg Citations:   0.0
-    Avg Report Len:  4779 chars
-    Avg Time:        2.6s
+    Avg Report Len:  7116 chars
+    Avg Time:        5.1s
     Total Retries:   0
     Total Re-plans:  0

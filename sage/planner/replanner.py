@@ -92,8 +92,13 @@ async def replan(
 
     # Assign unique IDs
     new_node_ids = []
+    used_ids = set(dag.nodes.keys())
     for sq in sub_questions:
-        new_id = generate_replan_node_id(dag)
+        counter = 1
+        while f"replan_{counter}" in used_ids:
+            counter += 1
+        new_id = f"replan_{counter}"
+        used_ids.add(new_id)
         sq["id"] = new_id
         # New nodes depend on the same things the failed node depended on
         # but NOT on the failed node itself
