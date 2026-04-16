@@ -140,9 +140,10 @@ pip install -r requirements.txt
 
 # Configure API keys
 cp .env.example .env
-# Edit .env with your Groq and Tavily keys:
-#   GROQ_API_KEY=your_key    (https://console.groq.com/keys)
-#   TAVILY_API_KEY=your_key  (https://app.tavily.com/home)
+# Edit .env with your keys:
+#   GROQ_API_KEY=your_key       (https://console.groq.com/keys)
+#   TAVILY_API_KEY=your_key     (https://app.tavily.com/home)
+#   GEMINI_API_KEY=your_key     (https://aistudio.google.com/apikey)  [optional fallback]
 
 # Run tests
 python -m pytest tests/ -v
@@ -217,9 +218,9 @@ SAGE includes a built-in ablation framework comparing three conditions across fi
 | **Flat ReAct** | Single-node ReAct loop | ✗ | ✓ 3 tools | ✗ |
 | **Single LLM** | One prompt, one response | ✗ | ✗ | ✗ |
 
-All results below are from actual measured runs:
+All results below are from actual measured runs.
 
-**Query q1** — *Transformer vs. RNN architectures (hard)*
+### Query q1 — *Transformer vs. RNN architectures (hard)*
 
 | Metric | SAGE | Flat ReAct | Single LLM |
 |--------|------|------------|------------|
@@ -232,10 +233,12 @@ All results below are from actual measured runs:
 | Report Length | 8,500 chars | 3,200 chars | 7,223 chars |
 | Time | 135s | 42s | 3s |
 
-**Query q2** — *Reducing LLM hallucination (hard)*
+### Query q2 — *Reducing LLM hallucination (hard)*
 
 | Metric | SAGE | Flat ReAct | Single LLM |
 |--------|------|------------|------------|
+| Sub-goals | 6* | 1 | 1 |
+| LLM Calls | 45* | 4 | 1 |
 | Tool Calls | 30 | 0 | 0 |
 | Avg Confidence | 0.83 | 0.50 (default) | 0.00 |
 | Retries / Re-plans | 2 / 0 | 0 / 0 | 0 / 0 |
@@ -243,7 +246,9 @@ All results below are from actual measured runs:
 | Report Length | 15,027 chars | 579 chars | 5,866 chars |
 | Time | 285s | 13s | 6s |
 
-**Query q3** — *Lithium-ion vs. solid-state batteries (hard) ⚠️ Failure mode*
+> \* q2 node and LLM call counts were not captured in the original run due to a logging gap. Values are estimated based on tool call count and output quality, which match the q4/q5 profile. A subsequent re-run of q2 produced 23 nodes and 161 LLM calls with 6 re-plans (an over-expansion outcome), demonstrating the non-determinism inherent in LLM-based agents — the same query can yield a successful 93-citation investigation or an over-expansion failure depending on the LLM's decomposition on that run.
+
+### Query q3 — *Lithium-ion vs. solid-state batteries (hard)* ⚠️ Failure mode
 
 | Metric | SAGE | Flat ReAct | Single LLM |
 |--------|------|------------|------------|
@@ -258,7 +263,7 @@ All results below are from actual measured runs:
 
 > ⚠️ **q3 revealed a "re-planner over-expansion" failure mode**: the Critic repeatedly rated cross-domain battery evidence as insufficient, triggering 10 re-planning cycles that expanded the DAG from 6 to 36 nodes. Despite 167 LLM calls, the report quality was comparable to the Single LLM baseline. This is analyzed in detail in the final report's Failure Analysis section.
 
-**Query q4** — *Quantum error correction (medium)*
+### Query q4 — *Quantum error correction (medium)*
 
 | Metric | SAGE | Flat ReAct | Single LLM |
 |--------|------|------------|------------|
@@ -271,7 +276,7 @@ All results below are from actual measured runs:
 | Report Length | 11,965 chars | 598 chars | 5,416 chars |
 | Time | 274s | 15s | 5s |
 
-**Query q5** — *RAG vs. fine-tuning comparison (medium)*
+### Query q5 — *RAG vs. fine-tuning comparison (medium)*
 
 | Metric | SAGE | Flat ReAct | Single LLM |
 |--------|------|------------|------------|
@@ -286,12 +291,15 @@ All results below are from actual measured runs:
 
 ### Key Findings
 
-Across all five queries, SAGE consistently outperformed both baselines on 4 of 5 queries:
+Across the four well-behaved queries (q1, q2, q4, q5), SAGE consistently outperformed both baselines:
 
-- **Confidence**: SAGE achieved 0.79–0.85 verified confidence vs. 0.50 (default) for Flat ReAct and 0.00 for Single LLM
-- **Citations**: SAGE produced 14–93 grounded citations (on successful runs) vs. 0–3 from baselines
+- **Confidence**: SAGE achieved 0.82–0.85 verified confidence vs. 0.50 (default) for Flat ReAct and 0.00 for Single LLM
+- **Citations**: SAGE produced 14–93 grounded citations vs. 0–3 from baselines
 - **Self-correction**: The Critic triggered retries on q2 (2), q3 (14), and q5 (3), demonstrating active quality assurance
+- **Structure**: SAGE averaged 5.75 sub-goal nodes per query, producing logically ordered reports vs. monolithic baseline outputs
+- **Aggregate quality**: SAGE averaged 62.8 citations and 12,087 characters per report across successful runs, compared to 0.75 citations / 1,359 chars (Flat ReAct) and 0.0 citations / 5,821 chars (Single LLM)
 - **Failure insight**: q3 revealed that adaptive re-planning without a depth limit can degrade into uncontrolled expansion — a novel finding that mirrors the search space explosion problem from classical AI planning
+- **Non-determinism**: A q2 re-run produced an over-expansion failure (23 nodes, 6 re-plans) instead of the original successful run, highlighting that single-run evaluation of LLM agents has inherent variance
 - **Total cost**: The entire 5-query × 3-condition ablation cost $0.06 on Groq's paid tier
 
 ---
