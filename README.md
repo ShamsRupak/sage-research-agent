@@ -5,9 +5,11 @@
 Built from scratch in Python — no LangChain, no AutoGPT, no agent frameworks. All planning logic is deterministic code external to the LLM.
 
 ---
-## Audio Overview
+## Audio & Visual Overview
 
 🎧 [Listen to a 22-minute audio walkthrough of SAGE's architecture and design](media/How_SAGE_AI_Automates_Verifiable_Research.m4a) (generated via NotebookLM)
+
+🎬 [Download the 7-minute video overview of SAGE's architecture and results](media/SageOverview.mp4) (generated via NotebookLM — click "Raw" or download to watch)
 
 ## Overview
 
