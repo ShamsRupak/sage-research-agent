@@ -70,8 +70,8 @@ The core design principle: **the LLM reasons, but the agent decides.** The LLM p
 ## Tech Stack
 
 | Component | Technology | Why |
-|-----------|------------|-----|
-| LLM | Groq API (`llama-3.3-70b-versatile`) | Fast inference, free tier, 14,400 req/day |
+|-----------|-----------|-----|
+| LLM | Groq API (`llama-3.3-70b-versatile`) | Fast inference, free + dev tier |
 | Fallback LLM | Google Gemini 1.5 Flash | Automatic failover if Groq rate-limits |
 | Web Search | Tavily API | Agent-optimized — returns clean snippets, not raw HTML |
 | URL Fetching | `httpx` + BeautifulSoup4 | Async HTTP with HTML-to-text extraction |
@@ -207,57 +207,93 @@ python -m eval.ablation --query q1
 
 ---
 
-## Ablation Study
- 
-SAGE includes a built-in ablation framework comparing three conditions:
- 
+## Ablation Study — Complete Results
+
+SAGE includes a built-in ablation framework comparing three conditions across five queries:
+
 | Condition | Description | Planner | Tools | Critic |
 |-----------|-------------|---------|-------|--------|
 | **Full SAGE** | Complete pipeline | ✓ DAG | ✓ 5 tools | ✓ Confidence + signals |
 | **Flat ReAct** | Single-node ReAct loop | ✗ | ✓ 3 tools | ✗ |
 | **Single LLM** | One prompt, one response | ✗ | ✗ | ✗ |
- 
-Results from actual measured runs across three queries:
- 
+
+All results below are from actual measured runs:
+
 **Query q1** — *Transformer vs. RNN architectures (hard)*
- 
+
 | Metric | SAGE | Flat ReAct | Single LLM |
 |--------|------|------------|------------|
 | Sub-goals | 5 | 1 | 1 |
 | LLM Calls | 28 | 8 | 1 |
 | Tool Calls | 19 | 5 | 0 |
 | Avg Confidence | 0.82 | 0.50 (default) | 0.00 |
-| Retries | 0 | 0 | 0 |
+| Retries / Re-plans | 0 / 0 | 0 / 0 | 0 / 0 |
 | Citations | 14 | 3 | 0 |
 | Report Length | 8,500 chars | 3,200 chars | 7,223 chars |
-| Time (s) | 135 | 42 | 3 |
- 
+| Time | 135s | 42s | 3s |
+
 **Query q2** — *Reducing LLM hallucination (hard)*
- 
+
 | Metric | SAGE | Flat ReAct | Single LLM |
 |--------|------|------------|------------|
 | Tool Calls | 30 | 0 | 0 |
 | Avg Confidence | 0.83 | 0.50 (default) | 0.00 |
-| Retries | 2 | 0 | 0 |
+| Retries / Re-plans | 2 / 0 | 0 / 0 | 0 / 0 |
 | Citations | 93 | 0 | 0 |
 | Report Length | 15,027 chars | 579 chars | 5,866 chars |
-| Time (s) | 285 | 13 | 6 |
- 
+| Time | 285s | 13s | 6s |
+
+**Query q3** — *Lithium-ion vs. solid-state batteries (hard) ⚠️ Failure mode*
+
+| Metric | SAGE | Flat ReAct | Single LLM |
+|--------|------|------------|------------|
+| Sub-goals | 36 ⚠️ | 1 | 1 |
+| LLM Calls | 167 | 5 | 1 |
+| Tool Calls | 100 | 4 | 0 |
+| Avg Confidence | 0.79 | 0.50 (default) | 0.00 |
+| Retries / Re-plans | 14 / 10 ⚠️ | 0 / 0 | 0 / 0 |
+| Citations | 0 | 0 | 0 |
+| Report Length | 7,181 chars | 530 chars | 7,116 chars |
+| Time | 171s | 9s | 5s |
+
+> ⚠️ **q3 revealed a "re-planner over-expansion" failure mode**: the Critic repeatedly rated cross-domain battery evidence as insufficient, triggering 10 re-planning cycles that expanded the DAG from 6 to 36 nodes. Despite 167 LLM calls, the report quality was comparable to the Single LLM baseline. This is analyzed in detail in the final report's Failure Analysis section.
+
+**Query q4** — *Quantum error correction (medium)*
+
+| Metric | SAGE | Flat ReAct | Single LLM |
+|--------|------|------------|------------|
+| Sub-goals | 6 | 1 | 1 |
+| LLM Calls | 35 | 5 | 1 |
+| Tool Calls | 22 | 4 | 0 |
+| Avg Confidence | 0.85 | 0.50 (default) | 0.00 |
+| Retries / Re-plans | 0 / 0 | 0 / 0 | 0 / 0 |
+| Citations | 64 | 0 | 0 |
+| Report Length | 11,965 chars | 598 chars | 5,416 chars |
+| Time | 274s | 15s | 5s |
+
 **Query q5** — *RAG vs. fine-tuning comparison (medium)*
- 
+
 | Metric | SAGE | Flat ReAct | Single LLM |
 |--------|------|------------|------------|
 | Sub-goals | 6 | 1 | 1 |
 | LLM Calls | 54 | 4 | 1 |
 | Tool Calls | 37 | 3 | 0 |
 | Avg Confidence | 0.85 | 0.50 (default) | 0.00 |
-| Retries | 3 | 0 | 0 |
+| Retries / Re-plans | 3 / 0 | 0 / 0 | 0 / 0 |
 | Citations | 80 | 0 | 0 |
 | Report Length | 12,855 chars | 1,059 chars | 4,779 chars |
-| Time (s) | 317 | 11 | 3 |
- 
-Key findings across all runs: SAGE consistently achieves **0.82–0.85 confidence** with **14–93 citations**, while both baselines produce **zero verified citations**. The Evidence Critic triggered **retries on q2 (2) and q5 (3)**, directly demonstrating self-correction. The q2 hallucination query is especially telling — SAGE produced 93 grounded citations on a topic specifically about reducing ungrounded claims.
- 
+| Time | 317s | 11s | 3s |
+
+### Key Findings
+
+Across all five queries, SAGE consistently outperformed both baselines on 4 of 5 queries:
+
+- **Confidence**: SAGE achieved 0.79–0.85 verified confidence vs. 0.50 (default) for Flat ReAct and 0.00 for Single LLM
+- **Citations**: SAGE produced 14–93 grounded citations (on successful runs) vs. 0–3 from baselines
+- **Self-correction**: The Critic triggered retries on q2 (2), q3 (14), and q5 (3), demonstrating active quality assurance
+- **Failure insight**: q3 revealed that adaptive re-planning without a depth limit can degrade into uncontrolled expansion — a novel finding that mirrors the search space explosion problem from classical AI planning
+- **Total cost**: The entire 5-query × 3-condition ablation cost $0.06 on Groq's paid tier
+
 ---
 
 ## Development Progress
@@ -274,7 +310,7 @@ Key findings across all runs: SAGE consistently achieves **0.82–0.85 confidenc
 - [x] Phase 9: Evaluation framework and ablation study
 - [x] Phase 10: Final LaTeX report
 
-**59 tests passing** · **16 modules** · **~15 commits**
+**59 tests passing** · **16 modules** · **5 queries evaluated** · **$0.06 total cost**
 
 ---
 
