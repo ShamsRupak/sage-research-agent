@@ -287,8 +287,10 @@ async def run_ablation(
                 import traceback
                 traceback.print_exc()
 
-            # Rate limit buffer between runs
-            await asyncio.sleep(5)
+            # Rate limit buffer — Groq free tier is 30 req/min
+            # SAGE uses ~30 calls, so we need a full minute between runs
+            console.print(f"  [dim]Waiting 60s for rate limit cooldown...[/dim]")
+            await asyncio.sleep(60)
 
     return all_metrics
 
