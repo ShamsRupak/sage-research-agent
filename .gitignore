@@ -13,4 +13,4 @@ report/*.out
 report/*.synctex.gz
 report/*.fdb_latexmk
 report/*.fls
-report/*.toc
+report/*.toceval_outputs_backup_*/

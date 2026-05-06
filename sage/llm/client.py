@@ -77,7 +77,7 @@ class LLMClient:
         groq_api_key: str | None = None,
         gemini_api_key: str | None = None,
         primary_model: str = "llama-3.3-70b-versatile",
-        fallback_model: str = "gemini-1.5-flash",
+        fallback_model: str = "gemini-2.5-flash",
         max_retries: int = 3,
         retry_delay: float = 2.0,
     ) -> None:
