@@ -1,0 +1,152 @@
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ SAGE Ablation Study                                                                                                                          │
+│                                                                                                                                              │
+│ Comparing: Full SAGE vs Flat ReAct vs Single LLM                                                                                             │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+============================================================
+Query q1: Analyze the trade-offs between transformer-based and recurrent architectures for...
+Difficulty: hard
+
+── SAGE (full) on q1 ──
+  ✓ Done — 32.0s, conf=0.84
+  Waiting 60s for rate limit cooldown...
+
+── Flat ReAct on q1 ──
+  ✓ Done — 7.2s
+  Waiting 60s for rate limit cooldown...
+
+── Single LLM on q1 ──
+  ✓ Done — 3.2s
+  Waiting 60s for rate limit cooldown...
+
+============================================================
+Query q2: What are the current approaches to reducing hallucination in large language mode...
+Difficulty: hard
+
+── SAGE (full) on q2 ──
+  ✓ Done — 27.4s, conf=0.84
+  Waiting 60s for rate limit cooldown...
+
+── Flat ReAct on q2 ──
+  ✓ Done — 6.1s
+  Waiting 60s for rate limit cooldown...
+
+── Single LLM on q2 ──
+  ✓ Done — 3.9s
+  Waiting 60s for rate limit cooldown...
+
+============================================================
+Query q3: Compare the environmental impact of lithium-ion batteries versus solid-state bat...
+Difficulty: hard
+
+── SAGE (full) on q3 ──
+  ✓ Done — 189.1s, conf=0.82
+  Waiting 60s for rate limit cooldown...
+
+── Flat ReAct on q3 ──
+  ✓ Done — 11.9s
+  Waiting 60s for rate limit cooldown...
+
+── Single LLM on q3 ──
+  ✓ Done — 3.9s
+  Waiting 60s for rate limit cooldown...
+
+============================================================
+Query q4: What is the current state of quantum error correction, and what are the main obs...
+Difficulty: medium
+
+── SAGE (full) on q4 ──
+  ✓ Done — 30.7s, conf=0.84
+  Waiting 60s for rate limit cooldown...
+
+── Flat ReAct on q4 ──
+  ✓ Done — 5.5s
+  Waiting 60s for rate limit cooldown...
+
+── Single LLM on q4 ──
+  ✓ Done — 4.5s
+  Waiting 60s for rate limit cooldown...
+
+============================================================
+Query q5: How does retrieval-augmented generation (RAG) compare to fine-tuning for domain-...
+Difficulty: medium
+
+── SAGE (full) on q5 ──
+  ✓ Done — 190.8s, conf=0.83
+  Waiting 60s for rate limit cooldown...
+
+── Flat ReAct on q5 ──
+  ✓ Done — 8.7s
+  Waiting 60s for rate limit cooldown...
+
+── Single LLM on q5 ──
+  ✓ Done — 3.4s
+  Waiting 60s for rate limit cooldown...
+
+                                                         Ablation Study Results                                                          
+╭────────┬──────────────┬───────┬──────────┬───────────┬────────────┬──────────┬─────────┬──────────┬───────────┬────────────┬──────────╮
+│ Query  │ Condition    │ Nodes │ Resolved │ LLM Calls │ Tool Calls │ Avg Conf │ Retries │ Re-plans │ Citations │ Report Len │ Time (s) │
+├────────┼──────────────┼───────┼──────────┼───────────┼────────────┼──────────┼─────────┼──────────┼───────────┼────────────┼──────────┤
+│ q1     │ sage         │     5 │        5 │        37 │         24 │     0.84 │       1 │        0 │        63 │      11494 │     32.0 │
+├────────┼──────────────┼───────┼──────────┼───────────┼────────────┼──────────┼─────────┼──────────┼───────────┼────────────┼──────────┤
+│ q1     │ flat_react   │     1 │        1 │         6 │          5 │     0.50 │       0 │        0 │         0 │        611 │      7.2 │
+├────────┼──────────────┼───────┼──────────┼───────────┼────────────┼──────────┼─────────┼──────────┼───────────┼────────────┼──────────┤
+│ q1     │ single_llm   │     1 │        1 │         1 │          0 │     0.00 │       0 │        0 │         0 │       5952 │      3.2 │
+├────────┼──────────────┼───────┼──────────┼───────────┼────────────┼──────────┼─────────┼──────────┼───────────┼────────────┼──────────┤
+│ q2     │ sage         │     5 │        5 │        31 │         20 │     0.84 │       0 │        0 │        46 │      10219 │     27.4 │
+├────────┼──────────────┼───────┼──────────┼───────────┼────────────┼──────────┼─────────┼──────────┼───────────┼────────────┼──────────┤
+│ q2     │ flat_react   │     1 │        1 │         5 │          4 │     0.50 │       0 │        0 │         0 │        473 │      6.1 │
+├────────┼──────────────┼───────┼──────────┼───────────┼────────────┼──────────┼─────────┼──────────┼───────────┼────────────┼──────────┤
+│ q2     │ single_llm   │     1 │        1 │         1 │          0 │     0.00 │       0 │        0 │         0 │       6338 │      3.9 │
+├────────┼──────────────┼───────┼──────────┼───────────┼────────────┼──────────┼─────────┼──────────┼───────────┼────────────┼──────────┤
+│ q3     │ sage         │    24 │        9 │       180 │        133 │     0.82 │      15 │        6 │       219 │      36768 │    189.1 │
+├────────┼──────────────┼───────┼──────────┼───────────┼────────────┼──────────┼─────────┼──────────┼───────────┼────────────┼──────────┤
+│ q3     │ flat_react   │     1 │        1 │         7 │          6 │     0.50 │       0 │        0 │         0 │        615 │     11.9 │
+├────────┼──────────────┼───────┼──────────┼───────────┼────────────┼──────────┼─────────┼──────────┼───────────┼────────────┼──────────┤
+│ q3     │ single_llm   │     1 │        1 │         1 │          0 │     0.00 │       0 │        0 │         0 │       6058 │      3.9 │
+├────────┼──────────────┼───────┼──────────┼───────────┼────────────┼──────────┼─────────┼──────────┼───────────┼────────────┼──────────┤
+│ q4     │ sage         │     6 │        6 │        35 │         22 │     0.84 │       0 │        0 │        64 │      12869 │     30.7 │
+├────────┼──────────────┼───────┼──────────┼───────────┼────────────┼──────────┼─────────┼──────────┼───────────┼────────────┼──────────┤
+│ q4     │ flat_react   │     1 │        1 │         5 │          4 │     0.50 │       0 │        0 │         0 │        723 │      5.5 │
+├────────┼──────────────┼───────┼──────────┼───────────┼────────────┼──────────┼─────────┼──────────┼───────────┼────────────┼──────────┤
+│ q4     │ single_llm   │     1 │        1 │         1 │          0 │     0.00 │       0 │        0 │         0 │       7778 │      4.5 │
+├────────┼──────────────┼───────┼──────────┼───────────┼────────────┼──────────┼─────────┼──────────┼───────────┼────────────┼──────────┤
+│ q5     │ sage         │    36 │        6 │       188 │        139 │     0.83 │      14 │       10 │       266 │      39835 │    190.8 │
+├────────┼──────────────┼───────┼──────────┼───────────┼────────────┼──────────┼─────────┼──────────┼───────────┼────────────┼──────────┤
+│ q5     │ flat_react   │     1 │        1 │         7 │          6 │     0.50 │       0 │        0 │         0 │        942 │      8.7 │
+├────────┼──────────────┼───────┼──────────┼───────────┼────────────┼──────────┼─────────┼──────────┼───────────┼────────────┼──────────┤
+│ q5     │ single_llm   │     1 │        1 │         1 │          0 │     0.00 │       0 │        0 │         0 │       6355 │      3.4 │
+╰────────┴──────────────┴───────┴──────────┴───────────┴────────────┴──────────┴─────────┴──────────┴───────────┴────────────┴──────────╯
+
+=== Condition Summary ===
+
+  sage:
+    Avg Confidence:  0.834
+    Avg Tool Calls:  67.6
+    Avg Citations:   131.6
+    Avg Report Len:  22237 chars
+    Avg Time:        94.0s
+    Total Retries:   30
+    Total Re-plans:  16
+
+  flat_react:
+    Avg Confidence:  0.500
+    Avg Tool Calls:  5.0
+    Avg Citations:   0.0
+    Avg Report Len:  673 chars
+    Avg Time:        7.9s
+    Total Retries:   0
+    Total Re-plans:  0
+
+  single_llm:
+    Avg Confidence:  0.000
+    Avg Tool Calls:  0.0
+    Avg Citations:   0.0
+    Avg Report Len:  6496 chars
+    Avg Time:        3.7s
+    Total Retries:   0
+    Total Re-plans:  0
+
+
+Results saved to eval_outputs/ablation_results.txt

@@ -4,18 +4,18 @@
 
 ---
 
-The reduction of hallucination in large language models has become a pressing concern in the field of natural language processing. Hallucination refers to the phenomenon where language models generate text that is not grounded in reality, often resulting in inaccurate or misleading information. Recent research has focused on developing approaches to mitigate this issue, and this report aims to synthesize the current state of knowledge on this topic.
+The development of large language models has been accompanied by the challenge of reducing hallucination, which refers to the generation of false or inaccurate information. Recent research has focused on developing approaches to mitigate hallucination in large language models, with varying degrees of success. This report synthesizes the current approaches to reducing hallucination, recent benchmarks used to evaluate their effectiveness, and emerging trends and future directions in this area.
 
-Current approaches to reducing hallucination in large language models include improving training data quality, using techniques such as fact-checking and source verification, and implementing methods like confidence scoring and uncertainty estimation. Additionally, some models utilize reinforcement learning from human feedback to reduce hallucination. These approaches have been found to be effective in reducing hallucination, with data quality and validation, model regularization techniques, human evaluation and feedback, multimodal learning, and adversarial training all being identified as useful methods. For instance, it has been claimed that data quality and validation can help reduce hallucination in large language models, with a confidence level of 0.90. Similarly, model regularization techniques, human evaluation and feedback, multimodal learning, and adversarial training have also been found to be effective, with confidence levels of 0.90.
+Current approaches to reducing hallucination in large language models include latent space steering, hierarchical semantic piece, and custom intervention using agents (https://openreview.net/forum?id=LBl7Hez0fF, https://link.springer.com/article/10.1007/s40747-025-01833-9). These approaches aim to reduce hallucinations by steering latent space representations during inference, enhancing the stability of vision features, or generating verification questions to assess the veracity of the model's output. However, the effectiveness of these approaches varies, with some models still exhibiting hallucination rates greater than 15% (https://aimultiple.com/ai-hallucination).
 
-However, the limitations and potential drawbacks of these approaches must also be considered. Inadequate training data quality, ineffective fact-checking and source verification techniques, insufficient confidence scoring and uncertainty estimation methods, and limited reinforcement learning from human feedback can all lead to reduced accuracy and reliability in the output of large language models. These limitations highlight the need for continued research and development in this area.
+Recent benchmarks used to evaluate the effectiveness of hallucination reduction approaches include the Large Language Models Hallucination survey (https://arxiv.org/html/2510.06265v3) and the AI Hallucination benchmark (https://aimultiple.com/ai-hallucination). These benchmarks have revealed that many hallucination detection benchmarks reduce the output to a binary label, "hallucinated" vs "non-hallucinated," which may not capture the complexity of hallucination in large language models. Moreover, the benchmarks have shown that even the latest models have significant hallucination rates, highlighting the need for further research and development of more effective approaches.
 
-Unfortunately, the lack of recent benchmarks and comparative studies makes it difficult to provide a comprehensive ranking or comparison of the different hallucination reduction approaches. While some studies have reported on the effectiveness of various methods, the absence of standardized benchmarks and evaluation metrics hinders the ability to draw definitive conclusions. Furthermore, the failure to resolve sub-question 2 and the pending status of sub-question 5 limit the scope of this report and highlight the need for further research.
+The limitations and potential drawbacks of current approaches to reducing hallucination in large language models include the impossibility of eliminating hallucination, inconsistencies between computable language models and computable worlds, and the challenges posed by hallucination in deploying large vision-language models (https://openreview.net/forum?id=09FxMv1WoH, https://arxiv.org/abs/2401.11817). These limitations highlight the need for further research and development of more effective approaches to reducing hallucination in large language models.
 
-In conclusion, while significant progress has been made in reducing hallucination in large language models, there is still much work to be done. The current approaches have shown promise, but their limitations and potential drawbacks must be addressed. The lack of recent benchmarks and comparative studies is a significant gap in the current research landscape, and future studies should prioritize the development of standardized evaluation metrics and the comparison of different approaches.
+Emerging trends and future directions in reducing hallucination in large language models include the development of more advanced latent space steering techniques, improved understanding of the relationship between computable language models and computable worlds, and the exploration of new architectures and training methods to mitigate hallucination (https://arxiv.org/html/2510.24476v1, https://www.gdit.com/perspectives/latest/reducing-generative-ai-hallucinations-by-fine-tuning-large-language-models/). Additionally, researchers are exploring the use of fine-tuning and custom intervention to reduce hallucinations in large language models (https://medium.com/@JamesStakelum/solving-the-hallucination-problem-how-smarter-methods-can-reduce-hallucinations-bfc2c4744a3e).
 
 Gaps and Future Directions:
-The current research on reducing hallucination in large language models is hindered by several gaps, including the lack of recent benchmarks and comparative studies. Future research should focus on developing standardized evaluation metrics and comparing the effectiveness of different approaches. Additionally, the exploration of emerging trends and future directions, such as the use of multimodal learning and adversarial training, is necessary to continue advancing the field. By addressing these gaps and pursuing new avenues of research, we can work towards developing more accurate and reliable large language models that minimize the risk of hallucination.
+While significant progress has been made in reducing hallucination in large language models, there are still several gaps and areas for future research. One of the main challenges is the development of more effective and efficient approaches to reducing hallucination, particularly in large vision-language models. Additionally, there is a need for more comprehensive benchmarks and evaluation metrics to assess the effectiveness of hallucination reduction approaches. Further research is also needed to explore the relationship between computable language models and computable worlds and to develop new architectures and training methods to mitigate hallucination. Ultimately, addressing the challenge of hallucination in large language models will require a multidisciplinary approach, combining advances in natural language processing, computer vision, and cognitive science.
 
 ---
 
@@ -23,12 +23,12 @@ The current research on reducing hallucination in large language models is hinde
 
 | Metric | Value |
 |--------|-------|
-| Sub-goals | 23 |
-| Resolved | 9 |
-| LLM Calls | 161 |
-| Tool Calls | 96 |
-| Iterations | 30 |
-| Elapsed (s) | 156.45 |
+| Sub-goals | 5 |
+| Resolved | 5 |
+| LLM Calls | 31 |
+| Tool Calls | 20 |
+| Iterations | 6 |
+| Elapsed (s) | 27.42 |
 
 
 ---
@@ -40,28 +40,10 @@ The current research on reducing hallucination in large language models is hinde
 | Sub-Goal | Question | Confidence | Status |
 |----------|----------|------------|--------|
 | sub_1 | What are the current approaches to reducing hallucination in... | 0.82 | resolved |
-| sub_2 | What recent benchmarks have been used to evaluate the effect... | 0.00 | failed |
-| sub_3 | How do the different hallucination reduction approaches comp... | 0.60 | failed |
-| sub_4 | What are the limitations and potential drawbacks of current ... | 0.80 | resolved |
-| sub_5 | Are there any emerging trends or future directions in reduci... | 0.00 | pending |
-| replan_1 | What specific metrics are used in recent benchmarks to evalu... | 0.80 | resolved |
-| replan_2 | Can you identify any recent research papers or publications ... | 0.20 | failed |
-| replan_3 | Are there any publicly available datasets or evaluation fram... | 0.85 | resolved |
-| replan_4 | What specific fact-checking datasets have been used in recen... | 0.80 | resolved |
-| replan_5 | Can adversarial training methods be categorized based on the... | 0.80 | resolved |
-| replan_6 | How do explainability methods, such as attention visualizati... | 0.85 | resolved |
-| replan_7 | What are the most recent benchmarks and evaluation metrics u... | 0.80 | resolved |
-| replan_8 | How do the effectiveness of confidence scoring and uncertain... | 0.40 | failed |
-| replan_9 | What are the current limitations and challenges of using rei... | 0.68 | failed |
-| replan_10 | What are the specific architectural differences in large lan... | 0.68 | failed |
-| replan_11 | How do different training datasets and their characteristics... | 0.85 | resolved |
-| replan_12 | What are the key performance metrics and benchmarks used to ... | 0.00 | pending |
-| replan_13 | What are the most recent and effective methods for collectin... | 0.00 | pending |
-| replan_14 | How are researchers addressing the challenge of aligning mod... | 0.00 | pending |
-| replan_15 | What are the current state-of-the-art results and benchmarks... | 0.00 | pending |
-| replan_16 | What are the current research findings on how variations in ... | 0.00 | pending |
-| replan_17 | How do different attention mechanisms, such as hierarchical ... | 0.00 | pending |
-| replan_18 | What are the recent benchmark results comparing the performa... | 0.00 | pending |
+| sub_2 | What recent benchmarks have been used to evaluate the effect... | 0.82 | resolved |
+| sub_3 | How do the different approaches to reducing hallucination in... | 0.82 | resolved |
+| sub_4 | What are the limitations and potential drawbacks of current ... | 0.90 | resolved |
+| sub_5 | Are there any emerging trends or future directions in reduci... | 0.85 | resolved |
 
 
 ---
@@ -69,5 +51,92 @@ The current research on reducing hallucination in large language models is hinde
 ## Source Provenance
 
 ```
-(No provenance data)
+[1] Node: sub_1 | Tool: web_search
+    Source: https://openreview.net/forum?id=LBl7Hez0fF
+    Claim: [1] Reducing Hallucinations in Large Vision-Language Models via Latent Space Steering | OpenReview
+ 
+[2] Node: sub_1 | Tool: web_search
+    Source: https://link.springer.com/article/10.1007/s40747-025-01833-9
+    Claim: [1] Reducing Hallucinations in Large Vision-Language Models via Latent Space Steering | OpenReview
+ 
+[3] Node: sub_1 | Tool: web_search
+    Source: https://aws.amazon.com/blogs/machine-learning/reducing-hallucinations-in-large-language-models-with-custom-intervention-using-amazon-bedrock-agents/
+    Claim: [1] Reducing Hallucinations in Large Vision-Language Models via Latent Space Steering | OpenReview
+ 
+[4] Node: sub_1 | Tool: web_search
+    Source: https://arxiv.org/html/2401.01313v1
+    Claim: [1] Reducing Hallucinations in Large Vision-Language Models via Latent Space Steering | OpenReview
+ 
+[5] Node: sub_1 | Tool: web_search
+    Source: https://www.reddit.com/r/LargeLanguageModels/comments/1l5pfw3/whats_the_most_effective_way_to_reduce/
+    Claim: [1] Reducing Hallucinations in Large Vision-Language Models via Latent Space Steering | OpenReview
+ 
+[8] Node: sub_1 | Tool: web_search
+    Source: https://arxiv.org/abs/2410.20024
+    Claim: [1] Reducing hallucinations in large language models with ...
+    URL: https://aws.amazon.com/blogs/
+[9] Node: sub_1 | Tool: web_search
+    Source: https://www.sapien.io/blog/reducing-hallucinations-in-llms
+    Claim: [1] Reducing hallucinations in large language models with ...
+    URL: https://aws.amazon.com/blogs/
+[10] Node: sub_1 | Tool: web_search
+    Source: https://www.getzep.com/ai-agents/reducing-llm-hallucinations/
+    Claim: [1] Reducing hallucinations in large language models with ...
+    URL: https://aws.amazon.com/blogs/
+[11] Node: sub_2 | Tool: web_search
+    Source: https://arxiv.org/html/2510.06265v3
+    Claim: [1] Large Language Models Hallucination: A Comprehensive Survey
+    URL: https://arxiv.org/html/2510
+[12] Node: sub_2 | Tool: web_search
+    Source: https://aimultiple.com/ai-hallucination
+    Claim: [1] Large Language Models Hallucination: A Comprehensive Survey
+    URL: https://arxiv.org/html/2510
+[13] Node: sub_2 | Tool: web_search
+    Source: https://suprmind.ai/hub/ai-hallucination-rates-and-benchmarks/
+    Claim: [1] Large Language Models Hallucination: A Comprehensive Survey
+    URL: https://arxiv.org/html/2510
+[14] Node: sub_2 | Tool: web_search
+    Source: https://www.reddit.com/r/datascience/comments/1sy6tzq/benchmarking_llm_hallucinations/
+    Claim: [1] Large Language Models Hallucination: A Comprehensive Survey
+    URL: https://arxiv.org/html/2510
+[15] Node: sub_2 | Tool: web_search
+    Source: https://www.sciencedirect.com/science/article/abs/pii/S157401372600078X
+    Claim: [1] Large Language Models Hallucination: A Comprehensive Survey
+    URL: https://arxiv.org/html/2510
+[21] Node: sub_3 | Tool: web_search
+    Source: https://papers.ssrn.com/sol3/Delivery.cfm/6354518.pdf?abstractid=6354518&mirid=1
+    Claim: [1] [PDF] BENCHMARKING HALLUCINATION ACROSS MULTIMODAL ...
+    URL: https://papers.ssrn.com/sol3/Del
+[23] Node: sub_3 | Tool: web_search
+    Source: https://www.reddit.com/r/LLMDevs/comments/1pea7g8/hallubench_llm_hallucination_rate_benchmark/
+    Claim: [1] [PDF] BENCHMARKING HALLUCINATION ACROSS MULTIMODAL ...
+    URL: https://papers.ssrn.com/sol3/Del
+[24] Node: sub_3 | Tool: web_search
+    Source: https://www.frontiersin.org/journals/artificial-intelligence/articles/10.3389/frai.2025.1622292/full
+    Claim: [1] [PDF] BENCHMARKING HALLUCINATION ACROSS MULTIMODAL ...
+    URL: https://papers.ssrn.com/sol3/Del
+[26] Node: sub_4 | Tool: web_search
+    Source: https://openreview.net/forum?id=09FxMv1WoH
+    Claim: [1] Hallucination is Inevitable: An Innate Limitation of Large Language Models | OpenReview
+    URL:
+[27] Node: sub_4 | Tool: web_search
+    Source: https://arxiv.org/abs/2401.11817
+    Claim: [1] Hallucination is Inevitable: An Innate Limitation of Large Language Models | OpenReview
+    URL:
+[30] Node: sub_4 | Tool: web_search
+    Source: https://www.reddit.com/r/singularity/comments/1jyrppi/hallucination_is_inevitable_an_innate_limitation/
+    Claim: [1] Hallucination is Inevitable: An Innate Limitation of Large Language Models | OpenReview
+    URL:
+[33] Node: sub_5 | Tool: web_search
+    Source: https://arxiv.org/html/2510.24476v1
+    Claim: [1] Reducing hallucinations in large language models with ...
+    URL: https://aws.amazon.com/blogs/
+[34] Node: sub_5 | Tool: web_search
+    Source: https://www.gdit.com/perspectives/latest/reducing-generative-ai-hallucinations-by-fine-tuning-large-language-models/
+    Claim: [1] Reducing hallucinations in large language models with ...
+    URL: https://aws.amazon.com/blogs/
+[35] Node: sub_5 | Tool: web_search
+    Source: https://medium.com/@JamesStakelum/solving-the-hallucination-problem-how-smarter-methods-can-reduce-hallucinations-bfc2c4744a3e
+    Claim: [1] Reducing hallucinations in large language models with ...
+    URL: https://aws.amazon.com/blogs/
 ```

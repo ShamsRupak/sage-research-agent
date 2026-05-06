@@ -4,12 +4,19 @@
 
 Built from scratch in Python — no LangChain, no AutoGPT, no agent frameworks. All planning logic is deterministic code external to the LLM.
 
+[![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
+[![Tests](https://img.shields.io/badge/tests-59%20passing-brightgreen.svg)](#testing)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](#license)
+
 ---
+
 ## Audio & Visual Overview
 
 🎧 [Listen to a 22-minute audio walkthrough of SAGE's architecture and design](media/How_SAGE_AI_Automates_Verifiable_Research.m4a) (generated via NotebookLM)
 
 🎬 [Download the 7-minute video overview of SAGE's architecture and results](media/SageOverview.mp4) (generated via NotebookLM — click "Raw" or download to watch)
+
+---
 
 ## Overview
 
@@ -32,58 +39,51 @@ The core design principle: **the LLM reasons, but the agent decides.** The LLM p
       │    User Query   │
       └────────┬────────┘
                ▼
-  ┌──────────────────────────┐      
+  ┌──────────────────────────┐
   │   Hierarchical Planner   │  ◄──   DAG decomposition, priority scheduling,
   │  (Deterministic Python)  │        stopping conditions, re-planning
-  └────────────┬─────────────┘      
+  └────────────┬─────────────┘
                ▼
-  ┌──────────────────────────┐      
+  ┌──────────────────────────┐
   │  LLM Reasoning Engine    │  ◄──   ReAct loop: Thought → Action → Observation
   │  (per sub-goal, 5 steps) │        (per sub-goal, max 5 steps)
-  └────────────┬─────────────┘     
+  └────────────┬─────────────┘
                ▼
-  ┌──────────────────────────┐      
+  ┌──────────────────────────┐
   │  Tool Execution Layer    │  ◄──   web_search, fetch_url, extract_claims,
   │  (5 stateless tools)     │        code_run, cross_reference
-  └────────────┬─────────────┘      
+  └────────────┬─────────────┘
                ▼
-  ┌──────────────────────────┐     
+  ┌──────────────────────────┐
   │  Evidence Critic         │  ◄──   Confidence scoring, contradiction detection
   │  (separate LLM call)     │        → ACCEPT / RETRY / ESCALATE
   └────────────┬─────────────┘        (ESCALATE triggers re-planning ↑)
-               ▼                    
+               ▼
   ┌──────────────────────────┐
   │  Synthesis & Report      │  ◄──   Topological DAG traversal → structured
   │  (dependency-ordered)    │        Markdown with citations + provenance
   └──────────────────────────┘
 ```
 
----
-
-## Key Design Decisions
-
-| Decision | Rationale |
-|----------|-----------|
-| **Planning external to LLM** | Makes decisions auditable, testable via ablation, and prevents the LLM from derailing the investigation strategy |
-| **DAG over linear plan** | Supports parallel sub-goals and explicit dependencies — sub-goal B waits for sub-goal A only if it actually needs A's answer |
-| **Separate Evidence Critic** | Independent LLM call with fixed JSON schema prevents the reasoning engine from grading its own work |
-| **Deterministic overrides on Critic** | Guarantees termination: max retries → escalate, high confidence → accept, regardless of LLM output |
-| **No agent frameworks** | Built from scratch to demonstrate full understanding of every component (course requirement) |
+The full architectural diagram and design discussion are in [`report/main.tex`](report/main.tex).
 
 ---
 
 ## Tech Stack
 
-| Component | Technology | Why |
-|-----------|-----------|-----|
-| LLM | Groq API (`llama-3.3-70b-versatile`) | Fast inference, free + dev tier |
-| Fallback LLM | Google Gemini 1.5 Flash | Automatic failover if Groq rate-limits |
-| Web Search | Tavily API | Agent-optimized — returns clean snippets, not raw HTML |
-| URL Fetching | `httpx` + BeautifulSoup4 | Async HTTP with HTML-to-text extraction |
-| Code Sandbox | `subprocess` + timeout | Safe execution of agent-generated Python snippets |
-| State | `dataclasses` + `heapq` | Pure Python, no external dependencies |
-| Output | `rich` | Beautiful terminal display for demo |
-| Tests | `pytest` | 59 unit tests across 4 test files |
+| Component | Technology |
+|---|---|
+| Primary LLM | Groq API (`llama-3.3-70b-versatile`) |
+| Fallback LLM | Google Gemini (`gemini-2.5-flash`) |
+| Web search | Tavily API |
+| URL fetcher | `httpx` + BeautifulSoup4 |
+| Code sandbox | `subprocess` with timeout guard |
+| Embeddings | `sentence-transformers` (`all-MiniLM-L6-v2`) |
+| State management | Pure Python (`dataclasses`, `heapq`) |
+| Terminal UI | `rich` |
+| Testing | `pytest` (59 tests) |
+
+**No external agent frameworks are used** — no LangChain, LlamaIndex, AutoGPT, or similar. The entire agent structure is built from scratch.
 
 ---
 
@@ -119,11 +119,13 @@ sage-research-agent/
 │   ├── queries.py             #   5 test queries
 │   ├── rubric.py              #   Metrics + comparison
 │   └── ablation.py            #   3-condition ablation
+├── eval_outputs/              # Per-run reports + ablation_results.txt
 ├── demo/
 │   └── run_demo.py            #   End-to-end demo
 ├── report/
 │   ├── main.tex               #   Final report
 │   └── proposal.tex           #   Proposal
+├── media/                     #   NotebookLM audio/video (Git LFS)
 └── tests/                     #   59 unit tests
     ├── test_dag.py
     ├── test_planner.py
@@ -159,8 +161,12 @@ python -m demo.run_demo
 # Run with a custom query
 python -m demo.run_demo "Your research question here"
 
-# Run the ablation study
+# Run the full ablation study (5 queries × 3 conditions, ~20 minutes)
+python -m eval.ablation
+
+# Run a specific query or condition
 python -m eval.ablation --query q1
+python -m eval.ablation --condition sage
 ```
 
 ---
@@ -195,6 +201,12 @@ python -m eval.ablation --query q1
   🔧 extract_claims → ✓ 8 claims
   🔧 cross_reference → ✓ all consistent
   🔧 finish
+  🔍 Critic: confidence=0.65, signal=RETRY
+
+▶ Iteration 3 | Node: sub_3 (retry)
+  🔧 web_search → ✓ refined query
+  🔧 extract_claims → ✓ quantitative claims
+  🔧 finish
   🔍 Critic: confidence=0.85, signal=ACCEPT
 
 ...
@@ -202,13 +214,14 @@ python -m eval.ablation --query q1
 ━━━ COMPLETE: All sub-goals resolved! ━━━
 
      Agent Run Summary
-╭────────────────┬────────╮
-│ Total Nodes    │      5 │
-│ Resolved       │      5 │
-│ LLM Calls      │     28 │
-│ Tool Calls     │     19 │
-│ Elapsed (s)    │ 135.11 │
-╰────────────────┴────────╯
+╭────────────────┬───────╮
+│ Total Nodes    │     5 │
+│ Resolved       │     5 │
+│ LLM Calls      │    37 │
+│ Tool Calls     │    24 │
+│ Citations      │    63 │
+│ Elapsed (s)    │  32.0 │
+╰────────────────┴───────╯
 ```
 
 ---
@@ -220,92 +233,52 @@ SAGE includes a built-in ablation framework comparing three conditions across fi
 | Condition | Description | Planner | Tools | Critic |
 |-----------|-------------|---------|-------|--------|
 | **Full SAGE** | Complete pipeline | ✓ DAG | ✓ 5 tools | ✓ Confidence + signals |
-| **Flat ReAct** | Single-node ReAct loop | ✗ | ✓ 3 tools | ✗ |
+| **Flat ReAct** | Single-node ReAct loop | ✗ | ✓ 5 tools | ✗ |
 | **Single LLM** | One prompt, one response | ✗ | ✗ | ✗ |
 
-All results below are from actual measured runs.
+All 15 runs in the latest sweep completed successfully. Numbers below are from actual measured executions.
 
-### Query q1 — *Transformer vs. RNN architectures (hard)*
+### Per-Query Results
 
-| Metric | SAGE | Flat ReAct | Single LLM |
-|--------|------|------------|------------|
-| Sub-goals | 5 | 1 | 1 |
-| LLM Calls | 28 | 8 | 1 |
-| Tool Calls | 19 | 5 | 0 |
-| Avg Confidence | 0.82 | 0.50 (default) | 0.00 |
-| Retries / Re-plans | 0 / 0 | 0 / 0 | 0 / 0 |
-| Citations | 14 | 3 | 0 |
-| Report Length | 8,500 chars | 3,200 chars | 7,223 chars |
-| Time | 135s | 42s | 3s |
+| Query | Condition | Nodes | LLM | Tools | Conf | Retry | Re-plan | Cites | Length | Time |
+|-------|-----------|------:|----:|------:|-----:|------:|--------:|------:|-------:|-----:|
+| q1 | SAGE | 5 | 37 | 24 | 0.84 | 1 | 0 | **63** | 11,494 | 32.0s |
+| q1 | Flat ReAct | 1 | 6 | 5 | 0.50 | 0 | 0 | 0 | 611 | 7.2s |
+| q1 | Single LLM | 1 | 1 | 0 | 0.00 | 0 | 0 | 0 | 5,952 | 3.2s |
+| q2 | SAGE | 5 | 31 | 20 | 0.84 | 0 | 0 | **46** | 10,219 | 27.4s |
+| q2 | Flat ReAct | 1 | 5 | 4 | 0.50 | 0 | 0 | 0 | 473 | 6.1s |
+| q2 | Single LLM | 1 | 1 | 0 | 0.00 | 0 | 0 | 0 | 6,338 | 3.9s |
+| q3 | SAGE | 24 | 180 | 133 | 0.82 | 15 | 6 | **219** | 36,768 | 189.1s |
+| q3 | Flat ReAct | 1 | 7 | 6 | 0.50 | 0 | 0 | 0 | 615 | 11.9s |
+| q3 | Single LLM | 1 | 1 | 0 | 0.00 | 0 | 0 | 0 | 6,058 | 3.9s |
+| q4 | SAGE | 6 | 35 | 22 | 0.84 | 0 | 0 | **64** | 12,869 | 30.7s |
+| q4 | Flat ReAct | 1 | 5 | 4 | 0.50 | 0 | 0 | 0 | 723 | 5.5s |
+| q4 | Single LLM | 1 | 1 | 0 | 0.00 | 0 | 0 | 0 | 7,778 | 4.5s |
+| q5 | SAGE | 36 | 188 | 139 | 0.83 | 14 | 10 | **266** | 39,835 | 190.8s |
+| q5 | Flat ReAct | 1 | 7 | 6 | 0.50 | 0 | 0 | 0 | 942 | 8.7s |
+| q5 | Single LLM | 1 | 1 | 0 | 0.00 | 0 | 0 | 0 | 6,355 | 3.4s |
 
-### Query q2 — *Reducing LLM hallucination (hard)*
+### Aggregate Summary
 
-| Metric | SAGE | Flat ReAct | Single LLM |
-|--------|------|------------|------------|
-| Sub-goals | 6* | 1 | 1 |
-| LLM Calls | 45* | 4 | 1 |
-| Tool Calls | 30 | 0 | 0 |
-| Avg Confidence | 0.83 | 0.50 (default) | 0.00 |
-| Retries / Re-plans | 2 / 0 | 0 / 0 | 0 / 0 |
-| Citations | 93 | 0 | 0 |
-| Report Length | 15,027 chars | 579 chars | 5,866 chars |
-| Time | 285s | 13s | 6s |
-
-> \* q2 node and LLM call counts were not captured in the original run due to a logging gap. Values are estimated based on tool call count and output quality, which match the q4/q5 profile. A subsequent re-run of q2 produced 23 nodes and 161 LLM calls with 6 re-plans (an over-expansion outcome), demonstrating the non-determinism inherent in LLM-based agents — the same query can yield a successful 93-citation investigation or an over-expansion failure depending on the LLM's decomposition on that run.
-
-### Query q3 — *Lithium-ion vs. solid-state batteries (hard)* ⚠️ Failure mode
-
-| Metric | SAGE | Flat ReAct | Single LLM |
-|--------|------|------------|------------|
-| Sub-goals | 36 ⚠️ | 1 | 1 |
-| LLM Calls | 167 | 5 | 1 |
-| Tool Calls | 100 | 4 | 0 |
-| Avg Confidence | 0.79 | 0.50 (default) | 0.00 |
-| Retries / Re-plans | 14 / 10 ⚠️ | 0 / 0 | 0 / 0 |
-| Citations | 0 | 0 | 0 |
-| Report Length | 7,181 chars | 530 chars | 7,116 chars |
-| Time | 171s | 9s | 5s |
-
-> ⚠️ **q3 revealed a "re-planner over-expansion" failure mode**: the Critic repeatedly rated cross-domain battery evidence as insufficient, triggering 10 re-planning cycles that expanded the DAG from 6 to 36 nodes. Despite 167 LLM calls, the report quality was comparable to the Single LLM baseline. This is analyzed in detail in the final report's Failure Analysis section.
-
-### Query q4 — *Quantum error correction (medium)*
-
-| Metric | SAGE | Flat ReAct | Single LLM |
-|--------|------|------------|------------|
-| Sub-goals | 6 | 1 | 1 |
-| LLM Calls | 35 | 5 | 1 |
-| Tool Calls | 22 | 4 | 0 |
-| Avg Confidence | 0.85 | 0.50 (default) | 0.00 |
-| Retries / Re-plans | 0 / 0 | 0 / 0 | 0 / 0 |
-| Citations | 64 | 0 | 0 |
-| Report Length | 11,965 chars | 598 chars | 5,416 chars |
-| Time | 274s | 15s | 5s |
-
-### Query q5 — *RAG vs. fine-tuning comparison (medium)*
-
-| Metric | SAGE | Flat ReAct | Single LLM |
-|--------|------|------------|------------|
-| Sub-goals | 6 | 1 | 1 |
-| LLM Calls | 54 | 4 | 1 |
-| Tool Calls | 37 | 3 | 0 |
-| Avg Confidence | 0.85 | 0.50 (default) | 0.00 |
-| Retries / Re-plans | 3 / 0 | 0 / 0 | 0 / 0 |
-| Citations | 80 | 0 | 0 |
-| Report Length | 12,855 chars | 1,059 chars | 4,779 chars |
-| Time | 317s | 11s | 3s |
+| Condition | Avg Conf | Avg Tool Calls | Avg Citations | Avg Report Length | Avg Time | Total Retries | Total Re-plans |
+|-----------|---------:|---------------:|--------------:|------------------:|---------:|--------------:|---------------:|
+| **SAGE** | **0.834** | **67.6** | **131.6** | **22,237 chars** | 94.0s | 30 | 16 |
+| Flat ReAct | 0.500 | 5.0 | 0.0 | 673 chars | 7.9s | 0 | 0 |
+| Single LLM | 0.000 | 0.0 | 0.0 | 6,496 chars | 3.7s | 0 | 0 |
 
 ### Key Findings
 
-Across the four well-behaved queries (q1, q2, q4, q5), SAGE consistently outperformed both baselines:
+- **Tools improve grounding decisively.** SAGE produced **658 total citations** across 5 queries; both baselines produced **0 citations on every query**. Tool access alone is not sufficient — the planner's focused sub-questions are what make tools effective.
+- **The Critic enables self-correction.** Retries triggered on q1 (1), q3 (15), and q5 (14); re-planning triggered on q3 (6) and q5 (10). Neither baseline has any self-correction capability.
+- **Planning structures the investigation.** SAGE decomposed q1, q2, and q4 into focused 5–6 sub-goal DAGs, ensuring foundational concepts were resolved before comparative analysis.
+- **Re-planning expansion is a behavioral mode worth understanding.** q3 and q5 expanded to 24 and 36 nodes respectively; both produced the highest citation counts in the study (219 and 266) but at substantial computational cost (180–188 LLM calls vs. 31–37 for the well-behaved runs). See the failure analysis in [`report/main.tex`](report/main.tex).
+- **LLM-based agents are non-deterministic.** A prior run of the same ablation showed q3 producing 0 citations and q5 running cleanly with 6 nodes; this run reversed the pattern. Single-run evaluations of agent systems necessarily understate this variance.
 
-- **Confidence**: SAGE achieved 0.82–0.85 verified confidence vs. 0.50 (default) for Flat ReAct and 0.00 for Single LLM
-- **Citations**: SAGE produced 14–93 grounded citations vs. 0–3 from baselines
-- **Self-correction**: The Critic triggered retries on q2 (2), q3 (14), and q5 (3), demonstrating active quality assurance
-- **Structure**: SAGE averaged 5.75 sub-goal nodes per query, producing logically ordered reports vs. monolithic baseline outputs
-- **Aggregate quality**: SAGE averaged 62.8 citations and 12,087 characters per report across successful runs, compared to 0.75 citations / 1,359 chars (Flat ReAct) and 0.0 citations / 5,821 chars (Single LLM)
-- **Failure insight**: q3 revealed that adaptive re-planning without a depth limit can degrade into uncontrolled expansion — a novel finding that mirrors the search space explosion problem from classical AI planning
-- **Non-determinism**: A q2 re-run produced an over-expansion failure (23 nodes, 6 re-plans) instead of the original successful run, highlighting that single-run evaluation of LLM agents has inherent variance
-- **Total cost**: The entire 5-query × 3-condition ablation cost $0.06 on Groq's paid tier
+---
+
+## Final Report
+
+The full LaTeX report is in [`report/main.tex`](report/main.tex). It includes the architecture diagram, planning component details, complete ablation results, a representative agent trace, failure analysis, and connection to all four ESE 561 course modules.
 
 ---
 
@@ -323,7 +296,13 @@ Across the four well-behaved queries (q1, q2, q4, q5), SAGE consistently outperf
 - [x] Phase 9: Evaluation framework and ablation study
 - [x] Phase 10: Final LaTeX report
 
-**59 tests passing** · **16 modules** · **5 queries evaluated** · **$0.06 total cost**
+**59 tests passing** · **16 modules** · **5 queries evaluated** · **15 ablation runs completed**
+
+---
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).
 
 ---
 

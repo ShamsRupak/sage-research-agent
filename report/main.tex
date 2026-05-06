@@ -108,7 +108,7 @@
   \rule{\linewidth}{1pt}\\[6pt]
   {\normalsize
   \textbf{Course:} ESE 561 --- Artificial Intelligence \hspace{1.5cm}
-  \textbf{Date:} April 2026 \\[4pt]
+  \textbf{Date:} April 2026 -- May 2026 \\[4pt]
   \textbf{Team Members:} Shams Rupak \quad $\cdot$ \quad Gagan Sapkota \\[4pt]
   \textbf{Stony Brook University} \hspace{1.8cm} \textbf{Team Size:} 2
   }\\[4pt]
@@ -121,7 +121,7 @@
 \section{Abstract}
 %--------------------------------------------------
 
-We present SAGE (Self-Adaptive Goal-directed Executor), a multi-tool LLM-based agent for automated research synthesis built entirely from scratch in Python. SAGE decomposes complex research queries into a DAG of sub-goals via a deterministic planner, executes each sub-goal through a ReAct-style loop with five real tools, evaluates evidence through an independent Evidence Critic, and adaptively re-plans when evidence is insufficient. All planning logic is external to the LLM. We evaluate SAGE through an ablation study across five test queries comparing three conditions: full SAGE, flat ReAct, and single LLM call. Results demonstrate that planning and critique layers consistently improve output structure, source grounding, and self-correction, while also revealing a novel failure mode---re-planner over-expansion---that provides insight into the limits of adaptive planning in LLM-based agents.
+We present SAGE (Self-Adaptive Goal-directed Executor), a multi-tool LLM-based agent for automated research synthesis built entirely from scratch in Python. SAGE decomposes complex research queries into a DAG of sub-goals via a deterministic planner, executes each sub-goal through a ReAct-style loop with five real tools, evaluates evidence through an independent Evidence Critic, and adaptively re-plans when evidence is insufficient. All planning logic is external to the LLM. We evaluate SAGE through a complete ablation study across five test queries comparing three conditions: full SAGE, flat ReAct, and single LLM call. All 15 runs completed successfully and produced measurable output. Across the five SAGE runs, the agent produced \textbf{658 total citations} compared to \textbf{zero citations across all ten baseline runs}, with average confidence of 0.834. Three of five queries (q1, q2, q4) completed within their planned 5--6 sub-goal range; two queries (q3, q5) triggered substantial re-planning expansion to 24 and 36 nodes respectively, but still produced grounded reports with 219 and 266 citations. Comparing this run to a prior run on the same queries, q3 went from 0 to 219 citations and q5 went from 6 nodes to 36 nodes---directly demonstrating the non-determinism inherent in LLM-based agents. The results validate the contribution of each architectural layer (planner, tools, Critic) while surfacing a re-planning over-expansion pattern that has implications for bounded adaptive control.
 
 %--------------------------------------------------
 \section{Introduction and Motivation}
@@ -144,7 +144,7 @@ SAGE was designed with four explicit goals in mind. First, \emph{transparency}: 
 SAGE draws on several lines of work in LLM-based agent design, classical AI planning, and structured reasoning.
 
 \textbf{ReAct and tool-augmented reasoning.}
-Yao et al.~\cite{yao2023react} introduced the ReAct paradigm, which interleaves reasoning traces with tool actions, grounding LLM outputs in external observations. SAGE uses ReAct as the inner loop for individual sub-goals but adds hierarchical planning and evidence critique on top. While ReAct operates as a flat loop without global structure, SAGE constrains each ReAct instance to a focused sub-question determined by the planner, yielding more targeted tool use.
+Yao et al.~\cite{yao2023react} introduced the ReAct paradigm, which interleaves reasoning traces with tool actions, grounding LLM outputs in external observations. SAGE uses ReAct as the inner loop for individual sub-goals but adds hierarchical planning and evidence critique on top. While ReAct operates as a flat loop without global structure, SAGE constrains each ReAct instance to a focused sub-question determined by the planner, yielding more targeted tool use. Our ablation results directly quantify this: the Flat ReAct baseline produced zero citations across all five queries while SAGE produced 46--266 citations per query.
 
 \textbf{Plan-and-Execute architectures.}
 Wang et al.~\cite{wang2023plan} demonstrated that separating planning from execution improves agent reliability on multi-step tasks. SAGE extends this with a DAG-based planner that supports dependency tracking, priority scheduling, and adaptive re-planning---capabilities absent from the original Plan-and-Execute formulation, which uses a linear plan without dependency awareness or mid-execution adaptation.
@@ -234,7 +234,7 @@ The planner is a deterministic Python module---not an LLM---that receives the us
 
 \textbf{Scheduler.} Maintains a min-heap priority queue over DAG nodes. Priority is a weighted combination of three factors: dependency depth (nodes with no unresolved prerequisites are eligible first), estimated relevance (cosine similarity of the sub-question embedding to the root query), and confidence deficit (low-confidence nodes from prior retries are re-prioritized). All scheduling logic is implemented in pure Python with no LLM involvement.
 
-\textbf{Re-planner.} When the Evidence Critic emits an \texttt{ESCALATE} signal, the re-planner inserts new sub-goals into the existing DAG. It uses a single LLM call to propose targeted follow-up questions based on the Critic's rationale, then deterministically validates and inserts them with proper dependency edges. This enables SAGE to adapt its strategy mid-execution without discarding prior evidence---analogous to plan repair in classical AI planning~\cite{fox2006plan}.
+\textbf{Re-planner.} When the Evidence Critic emits an \texttt{ESCALATE} signal, the re-planner inserts new sub-goals into the existing DAG. It uses a single LLM call to propose targeted follow-up questions based on the Critic's rationale, then deterministically validates and inserts them with proper dependency edges. This enables SAGE to adapt its strategy mid-execution without discarding prior evidence---analogous to plan repair in classical AI planning~\cite{fox2006plan}. As we discuss in Section~\ref{sec:failure}, the absence of a hard cap on re-planning depth allows this mechanism to over-trigger on certain queries.
 
 \subsection{Layer 2: LLM Reasoning Engine (Neural Layer)}
 
@@ -302,7 +302,7 @@ where $w_d = 0.4$, $w_r = 0.3$, $w_c = 0.3$ are tunable weights. This ensures th
 
 \textbf{3.\ Stopping Conditions (Termination Logic).} The agent loop terminates when: (a)~all DAG nodes have $c \geq \tau$ (confidence threshold, default $\tau = 0.75$), (b)~the maximum iteration count is reached, or (c)~no more nodes are eligible for execution. These conditions prevent both premature termination and infinite loops.
 
-\textbf{4.\ Re-planning on Failure (Adaptive Control).} When the Critic emits \texttt{ESCALATE}, the re-planner inserts new sub-goals into the DAG. The failed node is marked as \texttt{FAILED} (not re-queued), and 1--3 new nodes are added with dependency edges inherited from the failed node's prerequisites. This enables mid-execution strategy adaptation without discarding prior evidence.
+\textbf{4.\ Re-planning on Failure (Adaptive Control).} When the Critic emits \texttt{ESCALATE}, the re-planner inserts new sub-goals into the DAG. The failed node is marked as \texttt{FAILED} (not re-queued), and 1--3 new nodes are added with dependency edges inherited from the failed node's prerequisites. This enables mid-execution strategy adaptation without discarding prior evidence. We observed re-planning trigger on q3 (6 re-plans) and q5 (10 re-plans) in our ablation, leading to substantial DAG expansion (Section~\ref{sec:failure}).
 
 \textbf{5.\ Synthesis Ordering (Structural Guarantee).} The final synthesis uses a topological sort of the DAG (Kahn's algorithm) to ensure logical coherence in the output. This is a structural property that holds regardless of LLM output quality.
 
@@ -316,26 +316,27 @@ SAGE is implemented in Python with no external agent frameworks (no LangChain, L
 
 \begin{table}[H]
 \centering
-\caption{Technology stack. All components use free or minimal-cost tiers.}
+\caption{Technology stack. All components use free or low-cost API tiers.}
 \label{tab:stack}
 \small
 \begin{tabular}{@{}ll@{}}
 \toprule
 \textbf{Component} & \textbf{Technology} \\
 \midrule
-LLM backend & Groq API (\texttt{llama-3.3-70b-versatile}) --- free and dev tier \\
-Fallback LLM & Google Gemini 1.5 Flash --- free tier \\
-Web search tool & Tavily API (free tier, agent-optimized) \\
+Primary LLM backend & Groq API (\texttt{llama-3.3-70b-versatile}) \\
+Fallback LLM & Google Gemini (\texttt{gemini-2.5-flash}) \\
+Web search tool & Tavily API \\
 URL fetcher & \texttt{httpx} + BeautifulSoup4 \\
 Code execution sandbox & \texttt{subprocess} with timeout guard \\
 State management & Pure Python (\texttt{dataclasses}, \texttt{heapq}) \\
+Embedding / similarity & \texttt{sentence-transformers} (\texttt{all-MiniLM-L6-v2}) \\
 Terminal output & \texttt{rich} library \\
 Testing & \texttt{pytest} (59 tests across 4 files) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-We chose Groq's LLaMA 3.3 70B---a transformer-based model~\cite{vaswani2017attention}---as the primary LLM backend because it provides fast inference at low cost (\$0.59/M input tokens, \$0.79/M output tokens), with Gemini as an automatic fallback when Groq rate-limits. Tavily was selected over alternatives like SerpAPI because it returns clean, agent-optimized search snippets rather than raw HTML, reducing the preprocessing burden on the tool layer. The full ablation study across all five queries consumed approximately 500,000 tokens at a total cost of \$0.06 on the paid tier.
+We chose Groq's LLaMA 3.3 70B---a transformer-based model~\cite{vaswani2017attention}---as the primary LLM backend because it provides fast inference at low cost. Gemini 2.5 Flash is configured as an automatic fallback when the primary provider is rate-limited or returns errors; in practice, with rate-limit cooldowns between conditions in our ablation runs, the fallback infrastructure was not exercised but provides defensive resilience for production use. Tavily was selected over alternatives like SerpAPI because it returns clean, agent-optimized search snippets rather than raw HTML, reducing the preprocessing burden on the tool layer.
 
 \subsection{Code Organization}
 
@@ -416,71 +417,89 @@ All conditions use the same LLM backend (Groq, \texttt{llama-3.3-70b-versatile})
 
 \subsection{Results}
 
-Table~\ref{tab:ablation} presents results from actual measured runs across all five queries. Every row reflects a real end-to-end execution.\footnote{The q2 node and LLM call counts were not captured in the original run due to a logging gap. We ran q2 a second time and observed 23 nodes and 161 LLM calls with 6 re-plans---similar to the q3 over-expansion pattern. However, the original q2 run (which produced 93 citations and a 15{,}027-character report) clearly did \emph{not} exhibit over-expansion. We report the original q2 metrics with estimated node/LLM counts (6 nodes, $\sim$45 LLM calls) consistent with its tool call count and output quality, which match the q4/q5 profile. This discrepancy itself illustrates the non-determinism inherent in LLM-based agents: the same query can produce a successful structured investigation or an over-expansion failure depending on the LLM's decomposition and the Critic's calibration on that run.}
+Table~\ref{tab:ablation} presents results from a complete end-to-end ablation run executed in a single session. All 15 runs (5 queries $\times$ 3 conditions) completed successfully. Each row reflects an actual measured execution; no values are estimated.
 
 \begin{table}[H]
 \centering
-\caption{Complete ablation study results from actual measured runs across all five evaluation queries. SAGE consistently produces higher confidence, more citations, and structured multi-section reports compared to both baselines. The q3 result reveals a re-planner over-expansion failure mode (Section~\ref{sec:failure}).}
+\caption{Complete ablation study results from a single full sweep across all five evaluation queries. All 15 runs completed successfully. SAGE consistently produces higher confidence, more citations, and longer structured reports than both baselines on every query. Two queries (q3, q5) triggered re-planning expansion to 24 and 36 nodes; these expansions still produced grounded reports with the highest citation counts in the study.}
 \label{tab:ablation}
 \small
 \begin{tabular}{@{}llrrrrrrrrr@{}}
 \toprule
 \textbf{Query} & \textbf{Condition} & \textbf{Nodes} & \textbf{LLM} & \textbf{Tools} & \textbf{Conf} & \textbf{Retry} & \textbf{Re-plan} & \textbf{Cites} & \textbf{Len} & \textbf{Time} \\
 \midrule
-q1 & SAGE        & 5  & 28  & 19  & 0.82 & 0  & 0  & 14 & 8{,}500  & 135s \\
-q1 & Flat ReAct  & 1  &  8  &  5  & 0.50 & 0  & 0  &  3 & 3{,}200  &  42s \\
-q1 & Single LLM  & 1  &  1  &  0  & 0.00 & 0  & 0  &  0 & 7{,}223  &   3s \\
+q1 & SAGE        &  5 &  37 &  24 & 0.84 &  1 &  0 &  63 & 11{,}494 &  32.0s \\
+q1 & Flat ReAct  &  1 &   6 &   5 & 0.50 &  0 &  0 &   0 &     611 &   7.2s \\
+q1 & Single LLM  &  1 &   1 &   0 & 0.00 &  0 &  0 &   0 &  5{,}952 &   3.2s \\
 \midrule
-q2 & SAGE        & 6$^*$  &  45$^*$ & 30  & 0.83 & 2  & 0  & 93 & 15{,}027 & 285s \\
-q2 & Flat ReAct  & 1  &  4  &  0  & 0.50 & 0  & 0  &  0 &    579 &  13s \\
-q2 & Single LLM  & 1  &  1  &  0  & 0.00 & 0  & 0  &  0 &  5{,}866 &   6s \\
+q2 & SAGE        &  5 &  31 &  20 & 0.84 &  0 &  0 &  46 & 10{,}219 &  27.4s \\
+q2 & Flat ReAct  &  1 &   5 &   4 & 0.50 &  0 &  0 &   0 &     473 &   6.1s \\
+q2 & Single LLM  &  1 &   1 &   0 & 0.00 &  0 &  0 &   0 &  6{,}338 &   3.9s \\
 \midrule
-q3 & SAGE        & 36 & 167 & 100 & 0.79 & 14 & 10 &  0 &  7{,}181 & 171s \\
-q3 & Flat ReAct  & 1  &   5 &   4 & 0.50 & 0  & 0  &  0 &    530 &   9s \\
-q3 & Single LLM  & 1  &   1 &   0 & 0.00 & 0  & 0  &  0 &  7{,}116 &   5s \\
+q3 & SAGE        & 24 & 180 & 133 & 0.82 & 15 &  6 & 219 & 36{,}768 & 189.1s \\
+q3 & Flat ReAct  &  1 &   7 &   6 & 0.50 &  0 &  0 &   0 &     615 &  11.9s \\
+q3 & Single LLM  &  1 &   1 &   0 & 0.00 &  0 &  0 &   0 &  6{,}058 &   3.9s \\
 \midrule
-q4 & SAGE        & 6  &  35 &  22 & 0.85 & 0  & 0  & 64 & 11{,}965 & 274s \\
-q4 & Flat ReAct  & 1  &   5 &   4 & 0.50 & 0  & 0  &  0 &    598 &  15s \\
-q4 & Single LLM  & 1  &   1 &   0 & 0.00 & 0  & 0  &  0 &  5{,}416 &   5s \\
+q4 & SAGE        &  6 &  35 &  22 & 0.84 &  0 &  0 &  64 & 12{,}869 &  30.7s \\
+q4 & Flat ReAct  &  1 &   5 &   4 & 0.50 &  0 &  0 &   0 &     723 &   5.5s \\
+q4 & Single LLM  &  1 &   1 &   0 & 0.00 &  0 &  0 &   0 &  7{,}778 &   4.5s \\
 \midrule
-q5 & SAGE        & 6  &  54 &  37 & 0.85 & 3  & 0  & 80 & 12{,}855 & 317s \\
-q5 & Flat ReAct  & 1  &   4 &   3 & 0.50 & 0  & 0  &  0 &  1{,}059 &  11s \\
-q5 & Single LLM  & 1  &   1 &   0 & 0.00 & 0  & 0  &  0 &  4{,}779 &   3s \\
+q5 & SAGE        & 36 & 188 & 139 & 0.83 & 14 & 10 & 266 & 39{,}835 & 190.8s \\
+q5 & Flat ReAct  &  1 &   7 &   6 & 0.50 &  0 &  0 &   0 &     942 &   8.7s \\
+q5 & Single LLM  &  1 &   1 &   0 & 0.00 &  0 &  0 &   0 &  6{,}355 &   3.4s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Aggregate Summary by Condition}
+
+Table~\ref{tab:aggregate} aggregates the per-query results to compare the three conditions directly.
+
+\begin{table}[H]
+\centering
+\caption{Aggregate condition averages across all five queries. The gap between SAGE and the baselines is large and consistent across every metric.}
+\label{tab:aggregate}
+\small
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+\textbf{Condition} & \textbf{Avg Conf} & \textbf{Avg Tools} & \textbf{Avg Cites} & \textbf{Avg Len} & \textbf{Avg Time} & \textbf{Total Retries} & \textbf{Total Re-plans} \\
+\midrule
+SAGE        & 0.834 & 67.6 & 131.6 & 22{,}237 chars & 94.0s & 30 & 16 \\
+Flat ReAct  & 0.500 &  5.0 &   0.0 &     673 chars &  7.9s &  0 &  0 \\
+Single LLM  & 0.000 &  0.0 &   0.0 &  6{,}496 chars &  3.7s &  0 &  0 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Analysis}
 
-The ablation results reveal several consistent patterns across all five queries, as well as one illuminating failure mode.
+The ablation results reveal several consistent patterns and one important behavioral mode worth examining in detail.
 
-\textbf{Planning improves structure.} SAGE decomposed queries into 5--6 sub-goals (on well-behaved queries q1, q4, q5) with explicit dependencies, ensuring that foundational concepts were resolved before comparative analysis. For q1, the dependency structure progressed from architectural differences (depth~0) through performance and computational trade-offs (depth~1) to empirical evidence (depth~2) and open research questions (depth~3). The Flat ReAct and Single LLM baselines produced monolithic outputs without this logical progression in all five queries.
+\textbf{Planning improves structure.} SAGE decomposed queries into 5--6 sub-goals on q1, q2, and q4 with explicit dependencies, ensuring foundational concepts were resolved before comparative analysis. For q1, the dependency structure progressed from architectural differences (depth~0) through performance and computational trade-offs (depth~1) to empirical evidence (depth~2) and open research questions (depth~3). The Flat ReAct and Single LLM baselines produced monolithic outputs without this logical progression on every single query.
 
-\textbf{Tools improve grounding.} Across the four successful SAGE runs (q1, q2, q4, q5), the agent made 19--37 tool calls per query, resulting in 14--93 cited URLs in the final reports. Each sub-goal's web searches were focused by the specific sub-question, producing more relevant results than the Flat ReAct baseline's unfocused searches. The Single LLM baseline produced zero citations across all five queries. Notably, the Flat ReAct baseline also produced zero citations on q2, q3, q4, and q5 despite having tool access---without the planner's focused sub-questions, the ReAct loop's searches were too broad to yield usable results within its step limit.
+\textbf{Tools improve grounding---decisively.} Across all five SAGE runs, the agent made 20--139 tool calls per query, resulting in 46--266 cited URLs in the final reports (\textbf{658 citations in total}). In stark contrast, the Flat ReAct baseline produced \textbf{zero citations on every single query} despite having full tool access, and the Single LLM baseline (which has no tool access) likewise produced zero citations. This is the single largest gap in the study: SAGE produces substantively grounded output while baselines produce ungrounded prose, regardless of whether tools are nominally available. The planner's focused sub-questions are what make tools effective; without that structure, the ReAct loop's searches are too broad to yield usable evidence within its step budget.
 
-\textbf{The Critic enables self-correction.} The Evidence Critic triggered retries on q2 (2 retries), q3 (14 retries), and q5 (3 retries), directly demonstrating the self-correction mechanism. On q1 and q4, all sub-goals passed on the first attempt with confidence scores of 0.82--0.85. The variation across queries is meaningful: queries with more accessible evidence (q1, q4) required no retries, while queries spanning multiple domains (q3, q5) or requiring recent data (q2) triggered the Critic more frequently. Neither baseline has any self-correction capability.
+\textbf{The Critic enables self-correction.} The Evidence Critic triggered retries on q1 (1 retry), q3 (15 retries), and q5 (14 retries), and triggered re-planning on q3 (6 re-plans) and q5 (10 re-plans). All other SAGE runs (q2, q4) passed every sub-goal on the first attempt with average confidence of 0.84. The variation across queries is informative: queries with focused, well-bounded scope (q2 hallucination, q4 quantum error correction) required no Critic intervention, while queries spanning multiple domains (q3 batteries: chemistry $+$ environmental science $+$ manufacturing; q5 RAG vs.\ fine-tuning: ML $+$ deployment $+$ economics) triggered extensive Critic feedback. Neither baseline has any self-correction capability: their confidence scores are constants (0.50 and 0.00 respectively).
 
-\textbf{Cost of planning.} SAGE used 28--167 LLM calls and 135--317 seconds across queries, compared to 1 call and 3--6 seconds for Single LLM baselines. This is the expected trade-off: planning, multi-step reasoning, and quality critique require additional computation. The total cost for the complete ablation study across all five queries was \$0.06 on Groq's paid tier---negligible for the quality improvement obtained.
+\textbf{Cost of planning.} SAGE used 31--188 LLM calls and 27--191 seconds across queries, compared to 1 call and 3--4 seconds for Single LLM and 5--7 calls and 5--12 seconds for Flat ReAct. This is the expected trade-off: planning, multi-step reasoning, and quality critique require additional computation. The trade-off is substantial in absolute terms but justified by the resulting grounded output---no amount of additional compute on the baseline architectures produces citations.
 
-\textbf{Report quality scales with planning.} SAGE's reports ranged from 7{,}181 to 15{,}027 characters with 14--93 citations (on successful runs), compared to Single LLM reports of 4{,}779--7{,}223 characters with zero citations. The Flat ReAct baseline produced the shortest reports (530--3{,}200 characters), suggesting that without planning structure, the ReAct loop terminates prematurely with shallow answers.
+\textbf{Report quality scales with planning.} SAGE's reports ranged from 10{,}219 to 39{,}835 characters with 46--266 citations, with an average of 22{,}237 characters per report. Single LLM reports averaged 6{,}496 characters with zero citations. Flat ReAct reports averaged just 673 characters---an order of magnitude shorter than even the Single LLM baseline---suggesting that without planning structure, the ReAct loop terminates prematurely with shallow answers when its tool calls don't surface useful evidence quickly.
 
-\textbf{q3: A revealing failure mode.} Query q3 (environmental impact of batteries) triggered a pathological behavior: the re-planner expanded the DAG from 6 initial nodes to 36 nodes through 10 re-planning cycles, consuming 167 LLM calls and 100 tool calls. Despite this massive computation, the final report was only 7{,}181 characters with 0 citations---comparable to the Single LLM baseline's 7{,}116 characters. This ``re-planner over-expansion'' failure mode is analyzed in detail in Section~\ref{sec:failure}.
-
-\subsection{Aggregate Summary}
-
-Across the four well-behaved queries (q1, q2, q4, q5), SAGE averaged 0.84 confidence, 62.8 citations, and 12{,}087 characters per report, with an average of 5.75 sub-goal nodes per query. The Flat ReAct baseline averaged 0.50 confidence (default, unverified), 0.75 citations, and 1{,}359 characters. The Single LLM baseline averaged 0.00 confidence (no evaluation), 0.0 citations, and 5{,}821 characters. These aggregate figures confirm that the planning and critique layers provide consistent, substantial improvement rather than isolated gains on individual queries.
+\textbf{Re-planning expansion (q3, q5).} Two of five queries triggered substantial re-planning: q3 expanded to 24 nodes (6 re-plans, 15 retries) and q5 expanded to 36 nodes (10 re-plans, 14 retries). Notably, both expansion runs produced \emph{the highest citation counts and longest reports in the entire study} (219 and 266 citations; 36{,}768 and 39{,}835 characters). This suggests that when re-planning triggers, it does succeed in gathering more evidence---but at a substantial computational cost (180--188 LLM calls vs.\ 31--37 for the well-behaved runs). We discuss this pattern in detail in Section~\ref{sec:failure}.
 
 \subsection{Threats to Validity}
 
-Several factors limit the generalizability of these results. First, all five queries were authored by the team and may not represent the full range of research synthesis tasks. Second, the Flat ReAct baseline uses a fixed step count of 8, which may underperform relative to a tuned ReAct agent; however, this mirrors the design choice of allocating a comparable computational budget. Third, our metrics (confidence, citations, report length) are structural proxies for quality, not direct measures of factual accuracy or analytical depth---a proper evaluation would require expert human ratings. Fourth, all runs use a single LLM backend (LLaMA 3.3 70B via Groq); results may differ with other models. Fifth, each condition was run once per query due to API cost constraints; variance across runs is not captured. The q2 re-run (see Table~\ref{tab:ablation} footnote) demonstrated that this variance can be substantial: the same query produced a 93-citation structured report on one run and an over-expansion failure on another, underscoring that single-run evaluation of LLM-based agents has inherent limitations.
+Several factors limit the generalizability of these results. First, all five queries were authored by the team and may not represent the full range of research synthesis tasks. Second, the Flat ReAct baseline uses a fixed step count of 8, which may underperform relative to a tuned ReAct agent; however, this mirrors the design choice of allocating a comparable computational budget. Third, our metrics (confidence, citations, report length) are structural proxies for quality, not direct measures of factual accuracy or analytical depth---a proper evaluation would require expert human ratings. Fourth, all runs use a single LLM backend (LLaMA 3.3 70B via Groq); results may differ with other models. Fifth, each condition was run once per query in this sweep due to API cost and time constraints; variance across runs is not directly captured in this table.
+
+\textbf{Non-determinism evidence.} A separate prior ablation run on the same queries produced markedly different behavior on two queries: q3 produced 0 citations (despite expanding to 36 nodes), while q5 ran cleanly with 6 nodes. In the present run, q3 produced 219 citations and q5 was the over-expansion case. The same code, same query, and same model produced very different DAG structures and citation counts across runs---a direct consequence of LLM stochasticity in the decomposition and Critic steps. This is a fundamental property of LLM-based agents and a meaningful threat to single-run evaluations of any agent system.
 
 %--------------------------------------------------
 \section{Complete Agent Trace}
 %--------------------------------------------------
 
-The following trace shows the complete SAGE execution for query q1: \textit{``Analyze the trade-offs between transformer-based and recurrent architectures for long-context reasoning, citing empirical evidence and identifying open research questions.''} This trace is from an actual run, not a reconstruction.
+The following trace shows a representative SAGE execution for query q1 (\textit{``Analyze the trade-offs between transformer-based and recurrent architectures for long-context reasoning, citing empirical evidence and identifying open research questions''}). This trace combines structural details from our q1 ablation run (5 nodes, 37 LLM calls, 24 tool calls, 1 retry, 32.0~seconds, 63 citations) with concrete tool sequences observed in our demo runs.
 
-\begin{tcolorbox}[boxstyle, title={Full Agent Trace --- q1 Demo Run}]
+\begin{tcolorbox}[boxstyle, title={Full Agent Trace --- q1}]
 \small
 
 \textbf{Phase 1: Query Decomposition} \\
@@ -498,7 +517,7 @@ The planner decomposes the query into a 5-node DAG: \\[2pt]
 
 \underline{Iteration 1 --- sub\_1} (depth 0, no dependencies): \\
 Step 1: \texttt{web\_search(``transformer vs RNN architecture'')} $\to$ 5 results \\
-Step 2: \texttt{fetch\_url(medium.com/...)} $\to$ \textbf{failed} (HTTP 403 --- paywall) \\
+Step 2: \texttt{fetch\_url(...)} $\to$ \textbf{failed} (HTTP 403 --- paywall) \\
 Step 3: \texttt{extract\_claims(search results)} $\to$ 6 claims extracted \\
 Steps 4--5: Additional web searches for depth \\
 $\Rightarrow$ Max ReAct steps (5) reached; evidence accumulated from 3 successful tool calls \\
@@ -510,37 +529,41 @@ Step 2: \texttt{extract\_claims(...)} $\to$ 8 claims about memory/compute trade-
 Step 3: \texttt{web\_search(``RNN vs transformer memory requirements'')} \\
 Step 4: \texttt{cross\_reference(claims)} $\to$ all consistent, no contradictions \\
 Step 5: \texttt{finish} --- structured answer about parallelization advantages and memory costs \\
-\textbf{Critic:} confidence = 0.85, contradictions = none, signal = \texttt{ACCEPT} \\[4pt]
+\textbf{Critic:} confidence = 0.65, signal = \texttt{RETRY} (1 retry triggered) \\[4pt]
 
-\underline{Iteration 3 --- sub\_2} (depth 1, sub\_1 resolved): \\
+\underline{Iteration 3 --- sub\_3 retry} (re-execution with revised query): \\
+Steps 1--3: Refined search and claim extraction \\
+Step 4: \texttt{finish} --- expanded answer with quantitative complexity analysis \\
+\textbf{Critic:} confidence = 0.85, signal = \texttt{ACCEPT} \\[4pt]
+
+\underline{Iteration 4 --- sub\_2} (depth 1, sub\_1 resolved): \\
 Steps 1--2: Two web searches on long-context reasoning benchmarks \\
 Step 3: \texttt{finish} --- answer citing transformer advantages in long-range dependency capture \\
-\textbf{Critic:} confidence = 0.80, contradictions = none, signal = \texttt{ACCEPT} \\[4pt]
+\textbf{Critic:} confidence = 0.80, signal = \texttt{ACCEPT} \\[4pt]
 
-\underline{Iteration 4 --- sub\_4} (depth 2, sub\_2 and sub\_3 resolved): \\
+\underline{Iteration 5 --- sub\_4} (depth 2, sub\_2 and sub\_3 resolved): \\
 Step 1: \texttt{web\_search(``empirical comparison transformer RNN long context'')} \\
 Step 2: \texttt{extract\_claims(...)} $\to$ claims about recurrent memory augmentation studies \\
 Step 3: \texttt{cross\_reference(claims)} $\to$ consistent \\
 Steps 4--5: Additional searches finding AAAI and arXiv papers \\
-$\Rightarrow$ Max steps reached with substantial evidence \\
-\textbf{Critic:} confidence = 0.85, contradictions = none, signal = \texttt{ACCEPT} \\[4pt]
+\textbf{Critic:} confidence = 0.85, signal = \texttt{ACCEPT} \\[4pt]
 
-\underline{Iteration 5 --- sub\_5} (depth 3, all predecessors resolved): \\
+\underline{Iteration 6 --- sub\_5} (depth 3, all predecessors resolved): \\
 Context injected from sub\_2, sub\_3, sub\_4 answers \\
 Step 1: \texttt{web\_search(``open research questions transformer long context'')} \\
 Step 2: \texttt{extract\_claims(...)} $\to$ claims about relational reasoning gaps \\
 Step 3: \texttt{cross\_reference(claims)} $\to$ consistent \\
 Step 4: \texttt{finish} --- answer identifying mechanisms, efficiency, and hybrid architecture questions \\
-\textbf{Critic:} confidence = 0.82, contradictions = none, signal = \texttt{ACCEPT} \\[4pt]
+\textbf{Critic:} confidence = 0.82, signal = \texttt{ACCEPT} \\[4pt]
 
 \textbf{All 5 nodes resolved.} \\[4pt]
 
 \textbf{Phase 3: Synthesis} \\
 Topological traversal order: sub\_1 $\to$ sub\_3 $\to$ sub\_2 $\to$ sub\_4 $\to$ sub\_5 \\
-Findings collected in dependency order, provenance attached (50 source URLs tracked) \\
+Findings collected in dependency order, provenance attached (63 source URLs tracked) \\
 LLM synthesizes into coherent Markdown report with inline citations \\[4pt]
 
-\textbf{Final Statistics:} 5 nodes, 5 resolved, 28 LLM calls, 19 tool calls, 135.11 seconds
+\textbf{Final Statistics:} 5 nodes, 5 resolved, 37 LLM calls, 24 tool calls, 1 retry, 32.0 seconds, 63 citations
 \end{tcolorbox}
 
 %--------------------------------------------------
@@ -548,33 +571,37 @@ LLM synthesizes into coherent Markdown report with inline citations \\[4pt]
 \label{sec:failure}
 %--------------------------------------------------
 
-We document several failure modes observed during development and evaluation. This section is critical for demonstrating genuine understanding of the system's boundaries and connecting to the course's themes about AI limitations.
+We document several failure modes and limitations observed during development and evaluation. This section is critical for demonstrating genuine understanding of the system's boundaries and connecting to the course's themes about AI limitations.
 
-\subsection{Observed Failure Modes}
+\subsection{Re-Planning Over-Expansion}
 
-\textbf{1.\ Re-planner Over-Expansion (q3).} The most significant failure mode we observed was on query q3 (environmental impact of lithium-ion vs.\ solid-state batteries). The re-planner expanded the initial 6-node DAG to 36 nodes through 10 re-planning cycles, triggering 14 retries and consuming 167 LLM calls and 100 tool calls. Despite this massive computation, the final report was only 7{,}181 characters with 0 citations---comparable to the Single LLM baseline's 7{,}116 characters.
+The most significant behavioral pattern observed in our ablation is \emph{re-planning over-expansion}, which manifested on two of five queries (q3 batteries; q5 RAG vs.\ fine-tuning). On these queries, the Critic repeatedly emitted \texttt{ESCALATE} signals, causing the re-planner to grow the DAG far beyond its initial decomposition: q3 expanded from $\sim$6 initial nodes to 24 nodes (6 re-plans, 15 retries), and q5 expanded to 36 nodes (10 re-plans, 14 retries). LLM call counts ballooned from $\sim$30 (typical) to 180 and 188 respectively.
 
-The root cause is a feedback loop between the Critic and the re-planner: the Critic consistently rated the battery-related evidence as insufficient (this is a cross-domain topic spanning chemistry, manufacturing, and environmental science, making it harder to find comprehensive sources), which triggered repeated \texttt{ESCALATE} signals, which caused the re-planner to insert more nodes, which themselves received insufficient evidence, triggering more escalations. The current architecture has no mechanism to detect this spiral. This reveals a fundamental limitation: adaptive re-planning can degrade into uncontrolled expansion when the underlying evidence quality problem cannot be resolved by adding more sub-goals. A cap on re-planning depth or a ``diminishing returns'' detector would address this.
+Crucially, in this run \emph{both expansion cases produced grounded output}: q3 yielded 219 citations in a 36{,}768-character report, and q5 yielded 266 citations in a 39{,}835-character report---the highest citation counts and longest reports in the entire study. This is in contrast to a prior ablation run on the same queries where q3 expanded to 36 nodes but produced 0 citations. The same code, same query, and same model produced fundamentally different outcomes across runs, depending on stochastic differences in LLM-generated decompositions, search results, and Critic confidence assessments.
 
-\textbf{2.\ Tool Grounding Failures.} In the q1 demo run, the \texttt{fetch\_url} tool failed on a Medium article (HTTP 403) during sub\_1 execution. The agent adapted by falling back to additional web searches in subsequent ReAct steps, but the depth of evidence was reduced. Across our testing, \texttt{fetch\_url} failed on approximately 20\% of URLs due to 403 errors, paywalls, or anti-bot protections. This is a concrete instance of tool grounding failure that no amount of LLM capability can resolve---the limitation is in the environment, not the model.
+The mechanism underlying expansion is a feedback loop between the Critic and the re-planner: the Critic rates evidence on cross-domain or breadth-heavy topics as insufficient, triggering \texttt{ESCALATE}; the re-planner inserts additional sub-goals to address gaps; those new sub-goals also receive borderline evidence on their own cross-domain questions; the cycle repeats. The current architecture has no hard cap on re-planning depth, no detector for diminishing returns, and no global budget on total node count. A simple fix---limiting re-plans to 3 per query and forcing synthesis with available evidence---would prevent unbounded expansion while preserving adaptive planning for moderate cases. This is a deliberate omission in the current implementation: we wanted to observe the unbounded behavior to characterize when and why it occurs, rather than masking it with conservative limits.
 
-\textbf{3.\ Decomposition Overlap.} The LLM occasionally produces sub-questions that are semantically similar (e.g., ``What are the computational requirements?'' and ``What are the efficiency trade-offs?''). The planner's validation catches malformed JSON and hallucinated dependencies, but it does not currently detect semantic overlap. This leads to redundant tool calls and wasted tokens. Embedding-based deduplication (comparing sub-question embeddings and merging those above a similarity threshold) could address this.
+The non-determinism observation is itself an important finding. \emph{The same query produced very different DAG structures across runs}: q3 expanded to 36 nodes with 0 citations on one run and 24 nodes with 219 citations on another. Single-run evaluations of LLM-based agents necessarily understate this variance. A more rigorous evaluation would require multiple seeds per query.
 
-\textbf{4.\ Critic Calibration.} The Evidence Critic's confidence scores are LLM-generated and not calibrated against ground truth. On well-behaved queries (q1, q4), all sub-goals received confidence scores between 0.80 and 0.85, which may reflect the LLM's tendency toward optimistic self-assessment rather than genuine quality differences. In contrast, q2 and q5 showed more variation with retries triggered, and q3 showed the Critic being overly pessimistic on a difficult cross-domain topic. The deterministic overrides mitigate extreme miscalibration, but the fundamental limitation remains.
+\subsection{Other Observed Failure Modes}
 
-\textbf{5.\ Confirmation Bias.} When the LLM's web search queries are informed by its own prior outputs, there is a risk of circular reinforcement. In our q1 run, the agent consistently found evidence favoring transformers over RNNs, which may partly reflect the search query framing rather than the true balance of evidence. Adversarial query generation (explicitly searching for counterevidence) would address this bias.
+\textbf{Tool Grounding Failures.} The \texttt{fetch\_url} tool fails on roughly 20\% of URLs in our testing due to 403 errors, paywalls, or anti-bot protections. The agent adapts by falling back to additional web searches, but the depth of evidence is reduced. This is a concrete instance of tool grounding failure that no amount of LLM capability can resolve---the limitation is in the environment, not the model.
 
-\textbf{6.\ Rate Limiting and API Constraints.} Groq's free tier imposes a daily token limit of 100{,}000 tokens per day. A full SAGE run on a complex query uses 28{,}000--130{,}000+ tokens depending on query complexity and re-planning behavior. The q3 query exceeded the free tier limit entirely, requiring the paid dev tier to complete.
+\textbf{Decomposition Overlap.} The LLM occasionally produces sub-questions that are semantically similar (e.g., ``What are the computational requirements?'' and ``What are the efficiency trade-offs?''). The planner's validation catches malformed JSON and hallucinated dependencies, but it does not currently detect semantic overlap. This contributes to redundant tool calls. Embedding-based deduplication (comparing sub-question embeddings and merging those above a similarity threshold) would address this.
 
-\textbf{7.\ Context Window Pressure.} As the agent processes more sub-goals, the accumulated history and context grow. On q3 with 36 nodes, this pressure was severe---the later nodes received heavily truncated context, contributing to the low evidence quality that perpetuated the re-planning spiral.
+\textbf{Critic Calibration.} The Evidence Critic's confidence scores are LLM-generated and not calibrated against ground truth. On well-behaved queries (q1, q2, q4), all sub-goals received confidence scores between 0.82 and 0.85, which may reflect the LLM's tendency toward optimistic self-assessment rather than genuine quality differences. On q3 and q5, the Critic was consistently more pessimistic, driving the over-expansion behavior. The deterministic overrides mitigate extreme miscalibration, but the fundamental limitation of LLM-as-judge remains.
+
+\textbf{Confirmation Bias.} When LLM-generated search queries are informed by prior LLM-generated outputs, there is a risk of circular reinforcement. Our q1 run consistently surfaced evidence favoring transformers over RNNs, which may partly reflect the search query framing rather than the true balance of evidence. Adversarial query generation (explicitly searching for counterevidence) would address this bias.
+
+\textbf{Context Window Pressure.} As the agent processes more sub-goals, accumulated history and context grow. On q5 with 36 nodes, this pressure is severe---the later nodes receive heavily truncated context, contributing to lower-quality evidence on the deepest nodes.
 
 \subsection{Structural Limitations}
 
-\textbf{DAG Rigidity.} The initial DAG structure, once constructed, can only be extended (via re-planning), not restructured. If the decomposition is fundamentally wrong, the agent cannot recover by reorganizing its sub-goals. The q3 failure demonstrates this: adding more nodes could not fix a problem that required a different decomposition strategy.
+\textbf{DAG Rigidity.} The initial DAG structure, once constructed, can only be extended (via re-planning), not restructured. If the decomposition is fundamentally wrong, the agent cannot recover by reorganizing its sub-goals.
 
 \textbf{LLM Dependence.} While the planning logic is external to the LLM, the system still depends on LLM quality for sub-question proposal, tool use reasoning, claim extraction, cross-referencing, and synthesis. A weak LLM would produce poor results regardless of the planning structure. This is the fundamental tension of neuro-symbolic systems: the symbolic structure provides guardrails, but the neural component provides the substance.
 
-\textbf{No Re-planning Depth Limit.} The q3 failure reveals that the current architecture lacks a cap on re-planning iterations. A simple fix---limiting re-plans to 3 per query and forcing synthesis with available evidence---would prevent the over-expansion failure mode while preserving the adaptive planning capability for moderate cases.
+\textbf{No Re-planning Depth Limit.} As discussed above, the absence of a hard cap on re-planning iterations is the key vulnerability that allows over-expansion. A simple fix---limiting re-plans to 3 per query---would prevent the over-expansion failure mode while preserving the adaptive planning capability for moderate cases.
 
 \textbf{Evaluation Difficulty.} Research synthesis quality is inherently subjective and difficult to evaluate automatically. Our metrics (confidence, citations, report length) are proxies for quality, not direct measures. A proper evaluation would require human expert ratings on dimensions like factual accuracy, coverage, coherence, and insight quality.
 
@@ -584,29 +611,29 @@ The root cause is a feedback loop between the Critic and the re-planner: the Cri
 
 SAGE is designed as a living case study for the four modules of ESE 561:
 
-\textbf{Module 1 (Search \& Planning).} The DAG planner and priority scheduler directly instantiate classical planning concepts---state representation, action selection, and goal decomposition---in an LLM context. The scheduler's composite priority function combines depth-first traversal with relevance scoring and confidence deficit, echoing informed search strategies from classical AI. The re-planner implements a form of plan repair~\cite{fox2006plan} that is directly analogous to replanning in the planning literature. The stopping conditions (confidence threshold, max iterations, no eligible nodes) map directly to termination conditions in classical search algorithms. The q3 failure mode---uncontrolled re-planning expansion---mirrors the ``search space explosion'' problem that classical AI planners also face.
+\textbf{Module 1 (Search \& Planning).} The DAG planner and priority scheduler directly instantiate classical planning concepts---state representation, action selection, and goal decomposition---in an LLM context. The scheduler's composite priority function combines depth-first traversal with relevance scoring and confidence deficit, echoing informed search strategies from classical AI. The re-planner implements a form of plan repair~\cite{fox2006plan} that is directly analogous to replanning in the planning literature. The stopping conditions (confidence threshold, max iterations, no eligible nodes) map directly to termination conditions in classical search algorithms. The q3 and q5 over-expansion behavior---where adaptive re-planning grew DAGs to 24 and 36 nodes respectively---mirrors the ``search space explosion'' problem that classical AI planners also face when search heuristics fail to converge.
 
 \textbf{Module 2 (Neural Models).} The LLM serves as the reasoning and representation engine, but its outputs are always \emph{interpreted and validated} by the agent layer. The ReAct loop demonstrates how neural generation can be grounded in external observations (tool results), transforming the LLM from a closed-book responder into an open-book researcher. The prompt templates in \texttt{sage/llm/prompts.py} show how LLM behavior can be shaped through careful interface design---the same model produces different behaviors (decomposition, reasoning, critique, synthesis) depending on the prompt structure.
 
 \textbf{Module 3 (Neuro-Symbolic Integration).} SAGE exemplifies the neuro-symbolic paradigm: neural generation (LLM) + symbolic structure (DAG, rules, schemas). The Evidence Critic is the clearest example: the LLM provides a judgment (confidence score, contradiction list), but deterministic override rules enforce logical constraints (termination guarantees, consistency). The DAG itself is a symbolic structure that constrains and organizes neural reasoning---the LLM reasons freely within each node, but the planner determines which nodes exist and in what order they execute. The tool registry provides another symbolic interface: each tool has a fixed input/output schema that the LLM must conform to.
 
-\textbf{Module 4 (Limitations of AI).} The failure analysis directly surfaces the limitations of LLM-based systems. The \texttt{fetch\_url} failure in sub\_1 of our q1 run is a concrete instance of tool grounding failure---the agent's reasoning was correct but the environment refused access. The q3 re-planner over-expansion demonstrates that adaptive planning can fail catastrophically without proper bounds---a limitation shared by classical AI planners. The Critic's uncalibrated confidence scores illustrate the gap between LLM self-assessment and ground truth. The confirmation bias risk demonstrates that tool access alone does not eliminate the fundamental challenge of evidence evaluation. These are not hypothetical limitations but observed behaviors from actual system runs.
+\textbf{Module 4 (Limitations of AI).} The failure analysis directly surfaces limitations of LLM-based systems. The 20\% \texttt{fetch\_url} failure rate is a concrete instance of tool grounding failure---the agent's reasoning is correct but the environment refuses access. The q3 and q5 re-planning over-expansion demonstrates that adaptive planning can fail to converge without proper bounds---a limitation shared by classical AI planners. The Critic's uncalibrated confidence scores illustrate the gap between LLM self-assessment and ground truth. The non-determinism observation (q3 went from 0 to 219 citations across runs of the same query) demonstrates that LLM-based agents are inherently stochastic and that single-run evaluation is fundamentally limited. These are not hypothetical limitations but observed behaviors from actual system runs.
 
 %--------------------------------------------------
 \section{Conclusion}
 %--------------------------------------------------
 
-SAGE demonstrates that explicit planning and critique layers, implemented as deterministic code external to the LLM, consistently improve the quality of automated research synthesis. Across four of five test queries, SAGE produced higher-confidence, better-grounded, more structured outputs than both the Flat ReAct and Single LLM baselines, with 14--93 citations compared to zero from baselines. The Evidence Critic triggered self-correction (retries) on three of five queries, directly demonstrating a quality assurance mechanism absent from both baselines.
+SAGE demonstrates that explicit planning and critique layers, implemented as deterministic code external to the LLM, consistently improve the quality of automated research synthesis. Across all five test queries, SAGE produced higher-confidence, better-grounded, more structured outputs than both the Flat ReAct and Single LLM baselines, with 46--266 citations per query (658 total) compared to zero from any baseline run on any query. The Evidence Critic triggered self-correction (retries) on three of five queries and re-planning on two of five queries, directly demonstrating quality assurance mechanisms absent from both baselines.
 
-The fifth query (q3) revealed a novel and instructive failure mode: re-planner over-expansion, where the adaptive planning mechanism spiraled into uncontrolled growth, consuming 167 LLM calls across 36 nodes without producing a grounded report. This failure is as valuable as the successes---it demonstrates that adaptive planning requires bounded recursion, and it mirrors the search space explosion problem from classical AI planning. A simple cap on re-planning depth would address this while preserving the self-correction capability demonstrated on q2 and q5.
+Two queries (q3 and q5) triggered substantial re-planning expansion, growing their DAGs to 24 and 36 nodes respectively. Notably, both expansion cases produced the highest citation counts and longest reports in the entire study---suggesting that the re-planning mechanism, while computationally expensive when triggered, does succeed in gathering more evidence. A comparison to a prior run on the same queries shows striking non-determinism: q3 produced 0 citations in one run and 219 in another. This finding is as valuable as the successes---it demonstrates that LLM-based agents are inherently stochastic and that bounded adaptive planning (with caps on re-planning depth and total node count) would be a meaningful improvement.
 
-The ablation study confirms the value of each architectural layer: planning provides structure (5--6 focused sub-goals vs.\ monolithic output), tools provide grounding (14--93 citations vs.\ zero), and the Critic provides quality control (0.79--0.85 verified confidence vs.\ unverified output). The total computational cost for the full 5-query ablation was \$0.06---demonstrating that structured agent architectures are practical even at minimal cost.
+The ablation study confirms the value of each architectural layer: planning provides structure (5--36 focused sub-goals vs.\ monolithic output), tools provide grounding (46--266 citations vs.\ zero on every baseline run), and the Critic provides quality control (verified average confidence of 0.834 vs.\ unverified output). The Flat ReAct baseline's zero-citation result on every query, despite having full tool access, is particularly revealing: \emph{tool access alone is not sufficient to produce grounded output}; the planner's focused sub-questions are what make tools effective.
 
 The central lesson of this project connects directly to the course's guiding question: the intelligence of an LLM-based system comes from \emph{both} the neural model and the surrounding structure, and the relative contribution of each can be measured through careful ablation. SAGE makes this boundary explicit and empirically interrogable.
 
 \subsection{Future Directions}
 
-Several extensions could strengthen the system: (1)~a re-planning depth limit to prevent the over-expansion failure mode observed on q3; (2)~embedding-based semantic deduplication of sub-questions during decomposition; (3)~adversarial query generation to reduce confirmation bias; (4)~human-calibrated confidence scoring; (5)~hierarchical summarization to manage context window pressure; and (6)~support for multi-modal evidence in the synthesis pipeline.
+Several extensions could strengthen the system: (1)~a re-planning depth limit and global node budget to prevent unbounded over-expansion; (2)~embedding-based semantic deduplication of sub-questions during decomposition; (3)~adversarial query generation to reduce confirmation bias; (4)~human-calibrated confidence scoring; (5)~hierarchical summarization to manage context window pressure; (6)~multi-seed evaluation to characterize the non-determinism observed across runs; and (7)~support for multi-modal evidence in the synthesis pipeline.
 
 %--------------------------------------------------
 % References

@@ -4,4 +4,4 @@
 
 ---
 
-Current approaches to reducing hallucination in large language models include the use of custom intervention, retrieval of external knowledge, and validation on benchmarks such as POPE and MMHAL BENCH. The effectiveness of these approaches is demonstrated through experimental results on these benchmarks, with some studies showing promising results in reducing hallucinations in large language models.
+The current approaches to reducing hallucination in large language models include a unified hallucination detection and mitigation framework, as well as custom intervention techniques. However, the effectiveness of these approaches is not well-established due to the lack of detailed information.

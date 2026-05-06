@@ -4,4 +4,4 @@
 
 ---
 
-Solid-state batteries appear to have potential environmental benefits over lithium-ion batteries, including higher energy density and possibly more environmentally friendly manufacturing processes. However, more specific information on lifecycle emissions and recyclability is needed for a comprehensive comparison.
+Solid-state batteries generally have a lower environmental impact compared to lithium-ion batteries, particularly in terms of lifecycle emissions and recyclability, although the manufacturing process of solid-state batteries may have its own set of environmental challenges. Further research and development are needed to fully understand and mitigate the environmental impacts of both battery types.
