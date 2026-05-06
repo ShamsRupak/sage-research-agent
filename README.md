@@ -10,14 +10,6 @@ Built from scratch in Python — no LangChain, no AutoGPT, no agent frameworks. 
 
 ---
 
-## Audio & Visual Overview
-
-🎧 [Listen to a 22-minute audio walkthrough of SAGE's architecture and design](media/How_SAGE_AI_Automates_Verifiable_Research.m4a) (generated via NotebookLM)
-
-🎬 [Download the 7-minute video overview of SAGE's architecture and results](media/SageOverview.mp4) (generated via NotebookLM — click "Raw" or download to watch)
-
----
-
 ## Overview
 
 SAGE takes a complex, open-ended research question and autonomously produces a structured, citation-aware analytical report. It does this through a five-stage pipeline:
@@ -125,7 +117,6 @@ sage-research-agent/
 ├── report/
 │   ├── main.tex               #   Final report
 │   └── proposal.tex           #   Proposal
-├── media/                     #   NotebookLM audio/video (Git LFS)
 └── tests/                     #   59 unit tests
     ├── test_dag.py
     ├── test_planner.py
