@@ -14,3 +14,4 @@ report/*.synctex.gz
 report/*.fdb_latexmk
 report/*.fls
 report/*.toceval_outputs_backup_*/
+eval_outputs_backup_*/
